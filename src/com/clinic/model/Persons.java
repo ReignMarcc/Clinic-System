@@ -1,5 +1,8 @@
+package com.clinic.model;
+
 public abstract class Persons {
-    protected String name, contactNumber;
+    protected String name;
+    protected String contactNumber;
     protected int age ;
 
     public Persons() {
@@ -26,18 +29,18 @@ public abstract class Persons {
     public String getName() {
         return name;
     }
-
     public int getAge() {
         return age;
     }
-
     public String getContactNumber() {
         return contactNumber;
     }
 
-    public String displayInfo() {
-        return "Name: " + name + " | Age: " + age + " | Contact Number: " + contactNumber;
-    }
+    public void setName(String name) { this.name = name; }
+    public void setAge(int age) { this.age = age; }
+    public void setContactNumber(String contactNumber) { this.contactNumber = contactNumber; }
+
+    public abstract String displayInfo();
 
     @Override
     public String toString() {
