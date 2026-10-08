@@ -5,7 +5,7 @@ public class Patient extends Persons {
     private String diagnosis;
     private String notes;
 
-    // emergency / walk-in: ID at name lang muna
+    // emergency / walk-in: ID and name
     public Patient(String patientId, String name) {
         super(name);
         this.patientId = patientId;
@@ -29,7 +29,7 @@ public class Patient extends Persons {
 
     @Override
     public String displayInfo() {
-        String ageText = (age == 0) ? "N/A" : String.valueOf(age); // emergency pa kasi
+        String ageText = (age == 0) ? "N/A" : String.valueOf(age);
         String contactText = contactNumber.isEmpty() ? "N/A" : contactNumber;
         return "ID: " + patientId + " | Name: " + name + " | Age: " + ageText
                 + " | Contact: " + contactText;

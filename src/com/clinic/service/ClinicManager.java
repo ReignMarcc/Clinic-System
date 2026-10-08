@@ -18,7 +18,7 @@ public class ClinicManager {
     private final Random random = new Random();
 
     public ClinicManager() {
-        // Sample seed data para may maipakitang records agad
+        // Sample seed data
         doctors.add(new Doctor("D001", "Dr. Juan Cruz", 45, "09171234567", "General Physician", "Morning Shift"));
         doctors.add(new Doctor("D002", "Dr. Maria Santos", 38, "09189876543", "Pediatrics", "Night Shift"));
     }
