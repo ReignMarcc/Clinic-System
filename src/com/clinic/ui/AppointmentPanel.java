@@ -5,6 +5,7 @@ import com.clinic.model.AppointmentStatus;
 import com.clinic.model.Doctor;
 import com.clinic.model.Patient;
 import com.clinic.service.ClinicManager;
+import javax.swing.border.CompoundBorder;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -216,20 +217,28 @@ public class AppointmentPanel extends JPanel {
  // View button -> popup with Edit Records / Cancel Appointment
  // ------------------------------------------------------------------
 
- private void showViewMenu(Component invoker, int row) {
+ private void showViewMenu(int row) {
   if (rows == null || row < 0 || row >= rows.size()) return;
   Appointment a = rows.get(row);
   Patient patient = findPatient(a.getPatientId());
   if (patient == null) return;
 
   JPopupMenu menu = new JPopupMenu();
-  JMenuItem edit = new JMenuItem("Edit Records");
-  edit.addActionListener(e -> onViewPatient.accept(patient));
-  JMenuItem cancel = new JMenuItem("Cancel Appointment");
-  cancel.addActionListener(e -> onViewPatient.accept(patient));
+  menu.setBackground(Color.WHITE);
+  menu.setBorder(new CompoundBorder(new LineBorder(Theme.CARD_STROKE), new EmptyBorder(6, 6, 6, 6)));
+
+  AccountMenu.MenuButton edit = new AccountMenu.MenuButton("Edit Records", Theme.TEXT_DARK);
+  edit.addActionListener(e -> { menu.setVisible(false); onViewPatient.accept(patient); });
+  AccountMenu.MenuButton cancel = new AccountMenu.MenuButton("Cancel Appointment", Theme.ERROR);
+  cancel.addActionListener(e -> { menu.setVisible(false); onViewPatient.accept(patient); });
   menu.add(edit);
   menu.add(cancel);
-  menu.show(invoker, 0, invoker.getHeight());
+
+  // lalabas sa ilalim ng View button ng row na pinindot, nakadikit sa kanang gilid
+  Rectangle cell = table.getCellRect(row, 4, true);
+  int x = cell.x + cell.width - menu.getPreferredSize().width - 8;
+  int y = cell.y + cell.height - 6;
+  menu.show(table, Math.max(0, x), y);
  }
 
  private Patient findPatient(String patientId) {
@@ -267,7 +276,7 @@ public class AppointmentPanel extends JPanel {
    JButton b = makeButton();
    b.addActionListener(e -> {
     fireEditingStopped();
-    showViewMenu(table, editingRow);
+    showViewMenu(editingRow);
    });
    holder.add(b);
    return holder;

@@ -1,21 +1,24 @@
 package com.clinic.ui;
 
-import com.clinic.model.Doctor;
 import com.clinic.model.Patient;
 import com.clinic.service.ClinicManager;
 
 import javax.swing.*;
+import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * "Patients" page: every registered patient, with a View button per row.
- * View opens a small menu (Edit Records / Cancel Appointment) that both
- * land on that patient's record in the Records page, same as the
- * Appointments page's View button.
+ * "Patients" page: every registered patient, with a search box and a View
+ * button per row. View opens a small menu (Edit Records / Cancel Appointment)
+ * that both land on that patient's record in the Records page.
  */
 public class RegistrationPanel extends JPanel {
 
@@ -28,7 +31,8 @@ public class RegistrationPanel extends JPanel {
     };
     private final JTable table = new JTable(model);
     private final JLabel countLabel = new JLabel(" ");
-    private List<Patient> rows;
+    private final JTextField searchField = FormField.textField("Search patient name or ID");
+    private List<Patient> rows = new ArrayList<>();
 
     public RegistrationPanel(ClinicManager clinic, Consumer<Patient> onViewPatient) {
         this.clinic = clinic;
@@ -41,6 +45,18 @@ public class RegistrationPanel extends JPanel {
         JPanel top = new JPanel(new BorderLayout());
         top.setOpaque(false);
         top.add(UiKit.pageTopBar("Patients"), BorderLayout.CENTER);
+
+        // Search box (kaliwa) + Add Patient button (kanan)
+        FormField searchRow = new FormField(Icons.of(Icons.Type.SEARCH, 20, Theme.PRIMARY), searchField, null);
+        searchRow.setPreferredSize(new Dimension(320, 46));
+        searchField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent e) { refreshData(); }
+            @Override public void removeUpdate(DocumentEvent e) { refreshData(); }
+            @Override public void changedUpdate(DocumentEvent e) { refreshData(); }
+        });
+        JPanel searchWrap = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        searchWrap.setOpaque(false);
+        searchWrap.add(searchRow);
 
         PillButton add = PillButton.primary("Add Patient", Icons.of(Icons.Type.PLUS_CIRCLE, 22, Color.WHITE));
         add.setFont(Theme.font(Font.BOLD, 16));
@@ -55,10 +71,15 @@ public class RegistrationPanel extends JPanel {
         addWrap.setOpaque(false);
         addWrap.add(add);
 
+        JPanel actionRow = new JPanel(new BorderLayout(16, 0));
+        actionRow.setOpaque(false);
+        actionRow.add(searchWrap, BorderLayout.WEST);
+        actionRow.add(addWrap, BorderLayout.EAST);
+
         JPanel header = new JPanel(new BorderLayout(0, 12));
         header.setOpaque(false);
         header.add(top, BorderLayout.NORTH);
-        header.add(addWrap, BorderLayout.SOUTH);
+        header.add(actionRow, BorderLayout.SOUTH);
 
         add(header, BorderLayout.NORTH);
         add(buildTableCard(), BorderLayout.CENTER);
@@ -71,13 +92,21 @@ public class RegistrationPanel extends JPanel {
     // ------------------------------------------------------------------
 
     public void refreshData() {
-        java.util.Map<String, Doctor> byId = new java.util.HashMap<>();
-        for (Doctor d : clinic.getDoctors()) byId.put(d.getDoctorId().toUpperCase(), d);
+        List<Patient> all = clinic.getPatients();
+        String query = searchField.getText().trim().toLowerCase();
 
-        rows = clinic.getPatients();
+        rows = new ArrayList<>();
+        for (Patient p : all) {
+            if (query.isEmpty()
+                    || p.getName().toLowerCase().contains(query)
+                    || p.getPatientId().toLowerCase().contains(query)) {
+                rows.add(p);
+            }
+        }
+
         model.setRowCount(0);
         for (Patient p : rows) {
-            Doctor assigned = clinic.getAssignedDoctor(p.getPatientId());
+            com.clinic.model.Doctor assigned = clinic.getAssignedDoctor(p.getPatientId());
             model.addRow(new Object[]{
                     p.getName(),
                     p.getAge() == 0 ? "N/A" : String.valueOf(p.getAge()),
@@ -85,7 +114,12 @@ public class RegistrationPanel extends JPanel {
                     assigned == null ? "Not assigned" : assigned.getName(),
                     "View"});
         }
-        countLabel.setText(rows.size() + (rows.size() == 1 ? " patient" : " patients"));
+
+        if (query.isEmpty()) {
+            countLabel.setText(all.size() + (all.size() == 1 ? " patient" : " patients"));
+        } else {
+            countLabel.setText(rows.size() + " of " + all.size() + " patients");
+        }
     }
 
     // ------------------------------------------------------------------
@@ -132,18 +166,26 @@ public class RegistrationPanel extends JPanel {
     // View button -> popup with Edit Records / Cancel Appointment
     // ------------------------------------------------------------------
 
-    private void showViewMenu(Component invoker, int row) {
-        if (rows == null || row < 0 || row >= rows.size()) return;
+    private void showViewMenu(int row) {
+        if (row < 0 || row >= rows.size()) return;
         Patient patient = rows.get(row);
 
         JPopupMenu menu = new JPopupMenu();
-        JMenuItem edit = new JMenuItem("Edit Records");
-        edit.addActionListener(e -> onViewPatient.accept(patient));
-        JMenuItem cancel = new JMenuItem("Cancel Appointment");
-        cancel.addActionListener(e -> onViewPatient.accept(patient));
+        menu.setBackground(Color.WHITE);
+        menu.setBorder(new CompoundBorder(new LineBorder(Theme.CARD_STROKE), new EmptyBorder(6, 6, 6, 6)));
+
+        AccountMenu.MenuButton edit = new AccountMenu.MenuButton("Edit Records", Theme.TEXT_DARK);
+        edit.addActionListener(e -> { menu.setVisible(false); onViewPatient.accept(patient); });
+        AccountMenu.MenuButton cancel = new AccountMenu.MenuButton("Cancel Appointment", Theme.ERROR);
+        cancel.addActionListener(e -> { menu.setVisible(false); onViewPatient.accept(patient); });
         menu.add(edit);
         menu.add(cancel);
-        menu.show(invoker, 0, invoker.getHeight());
+
+        // lalabas sa ilalim ng View button ng row na pinindot, nakadikit sa kanang gilid
+        Rectangle cell = table.getCellRect(row, 4, true);
+        int x = cell.x + cell.width - menu.getPreferredSize().width - 8;
+        int y = cell.y + cell.height - 6;
+        menu.show(table, Math.max(0, x), y);
     }
 
     private class ViewButtonCell extends AbstractCellEditor implements javax.swing.table.TableCellRenderer, javax.swing.table.TableCellEditor {
@@ -173,7 +215,7 @@ public class RegistrationPanel extends JPanel {
             JButton b = makeButton();
             b.addActionListener(e -> {
                 fireEditingStopped();
-                showViewMenu(table, editingRow);
+                showViewMenu(editingRow);
             });
             holder.add(b);
             return holder;
