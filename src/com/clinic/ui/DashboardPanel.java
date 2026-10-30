@@ -33,6 +33,8 @@ public class DashboardPanel extends JPanel {
 
     private final ClinicManager clinic;
     private final Runnable onViewAll;
+    private final Runnable onSettings;
+    private final Runnable onLogout;
 
     private final StatCard patientsCard = new StatCard(Icons.Type.PEOPLE, Theme.TILE_BLUE, "Active Patients");
     private final StatCard pendingCard  = new StatCard(Icons.Type.CALENDAR_CLOCK, Theme.TILE_YELLOW, "Pending Appointments");
@@ -45,9 +47,11 @@ public class DashboardPanel extends JPanel {
     };
     private final JPanel tableHolder = new JPanel(new CardLayout());
 
-    public DashboardPanel(ClinicManager clinic, Runnable onViewAll) {
+    public DashboardPanel(ClinicManager clinic, Runnable onViewAll, Runnable onSettings, Runnable onLogout) {
         this.clinic = clinic;
         this.onViewAll = onViewAll;
+        this.onSettings = onSettings;
+        this.onLogout = onLogout;
 
         setLayout(new BorderLayout(0, 18));
         setBackground(Theme.CONTENT_BG);
@@ -121,7 +125,11 @@ public class DashboardPanel extends JPanel {
         JPanel row1 = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         row1.setOpaque(false);
         row1.add(new IconButton(Icons.of(Icons.Type.BELL, 20, Theme.PRIMARY), "Notifications", new Color(0, 0, 0, 25)));
-        row1.add(new JLabel(Icons.of(Icons.Type.AVATAR, 30, Theme.TEXT_DARK)));
+
+        IconButton avatar = new IconButton(
+                Icons.of(Icons.Type.AVATAR, 30, Theme.TEXT_DARK), "Account", new Color(0, 0, 0, 25));
+        avatar.addActionListener(e -> AccountMenu.show(avatar, onSettings, onLogout, true, false));
+        row1.add(avatar);
 
         JPanel row2 = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         row2.setOpaque(false);

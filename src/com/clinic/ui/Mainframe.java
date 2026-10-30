@@ -60,7 +60,10 @@ public class Mainframe extends JFrame {
     public Mainframe(ClinicManager clinic) {
         super("Clinic Management System");
         this.clinic = clinic;
-        this.dashboard = new DashboardPanel(clinic, () -> showPage(PAGE_APPOINTMENTS));
+        this.dashboard = new DashboardPanel(clinic,
+                () -> showPage(PAGE_APPOINTMENTS),
+                () -> showPage(PAGE_SETTINGS),
+                this::logout);
         this.recordsPanel = new RecordsPanel(clinic, () -> showPage(PAGE_SEARCH));
         this.appointmentPanel = new AppointmentPanel(clinic,
                 () -> AddPatientDialog.open(this, clinic, this::refreshData),
@@ -144,6 +147,18 @@ public class Mainframe extends JFrame {
         showPage(PAGE_RECORDS);
     }
 
+    private void logout() {
+        int choice = JOptionPane.showConfirmDialog(this,
+                "Are you sure you want to log out?", "Logout",
+                JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+        if (choice != JOptionPane.YES_OPTION) return;
+
+        statusTimer.stop();   // para hindi tumakbo sa background yung lumang window
+        dispose();
+        SwingUtilities.invokeLater(() ->
+                new LoginFrame(() -> new Mainframe(clinic).setVisible(true)).setVisible(true));
+    }
+
     private void refreshData() {
         dashboard.refresh();
         appointmentPanel.refresh();
@@ -207,7 +222,11 @@ public class Mainframe extends JFrame {
         }
 
         sidebar.add(Box.createVerticalGlue());
-        sidebar.add(new SidebarItem(Icons.Type.AVATAR, 44, "Admin", "System Administrator", 66, false));
+        SidebarItem admin = new SidebarItem(Icons.Type.AVATAR, 44, "Admin", "System Administrator", 66, true);
+        admin.setToolTipText("Account");
+        admin.addActionListener(e ->
+                AccountMenu.show(admin, () -> showPage(PAGE_SETTINGS), this::logout, false, true));
+        sidebar.add(admin);
         return sidebar;
     }
 
