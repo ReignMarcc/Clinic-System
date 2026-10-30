@@ -30,8 +30,15 @@ public class SettingsPanel extends JPanel {
         addRow(card, c, 4, "New email", newEmail);
         addRow(card, c, 5, "New password (8+ characters)", newPassword);
         addRow(card, c, 6, "Confirm new password", confirmPassword);
-        JButton save = PillButton.primary("Save Changes", Icons.of(Icons.Type.SETTINGS, 20, Color.WHITE));
+
+        // Mas maliit na font at icon para kumasya yung buong "Save Changes"
+        JButton save = PillButton.primary("Save Changes", Icons.of(Icons.Type.SETTINGS, 16, Color.WHITE));
+        save.setFont(Theme.font(Font.BOLD, 14));
+        Dimension btnSize = new Dimension(165, 38);
+        save.setPreferredSize(btnSize);
+        save.setMinimumSize(btnSize);
         save.addActionListener(e -> saveChanges());
+
         c.gridx = 1; c.gridy = 7; c.anchor = GridBagConstraints.EAST; card.add(save, c);
         add(card);
     }

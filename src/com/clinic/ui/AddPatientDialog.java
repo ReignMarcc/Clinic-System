@@ -81,9 +81,6 @@ public class AddPatientDialog extends JDialog {
         this.onAdded = onAdded;
 
         setUndecorated(true);
-        try {
-            setBackground(new Color(0, 0, 0, 0));
-        } catch (UnsupportedOperationException ignored) {}
 
         Surface surface = new Surface();
         surface.setLayout(new BorderLayout());
@@ -102,6 +99,7 @@ public class AddPatientDialog extends JDialog {
             @Override public void windowOpened(WindowEvent e) { nameField.requestFocusInWindow(); }
         });
         pack();
+        setShape(new java.awt.geom.RoundRectangle2D.Double(0, 0, getWidth(), getHeight(), 34, 34));
     }
 
     private JComponent buildHeader() {
@@ -210,10 +208,19 @@ public class AddPatientDialog extends JDialog {
     private static <T> void styleCombo(JComboBox<T> combo, String placeholder, Function<T, String> label) {
         combo.setUI(new javax.swing.plaf.basic.BasicComboBoxUI() {
             @Override
+            protected void installDefaults() {
+                super.installDefaults();
+                squareButton = false;   // ito yung nagpapalabas ng gray na parihaba
+            }
+
+            @Override
             protected JButton createArrowButton() {
                 JButton none = new JButton();
                 none.setPreferredSize(new Dimension(0, 0));
                 none.setBorder(null);
+                none.setOpaque(false);
+                none.setContentAreaFilled(false);
+                none.setFocusable(false);
                 return none;
             }
 
@@ -226,6 +233,13 @@ public class AddPatientDialog extends JDialog {
         combo.setBorder(null);
         combo.setFont(Theme.font(Font.PLAIN, 15));
         combo.setSelectedIndex(-1);
+
+        combo.addPopupMenuListener(new javax.swing.event.PopupMenuListener() {
+            @Override public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent e) { }
+            @Override public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent e) { repaintLater(combo); }
+            @Override public void popupMenuCanceled(javax.swing.event.PopupMenuEvent e) { repaintLater(combo); }
+        });
+        combo.addItemListener(e -> repaintLater(combo));
 
         combo.setRenderer(new DefaultListCellRenderer() {
             @Override
@@ -248,7 +262,14 @@ public class AddPatientDialog extends JDialog {
             }
         });
     }
-
+    /** Forces the whole dialog to repaint, since the popup can leave stale pixels on the transparent window. */
+    private static void repaintLater(JComponent c) {
+        SwingUtilities.invokeLater(() -> {
+            JRootPane root = SwingUtilities.getRootPane(c);
+            if (root != null) root.repaint();
+            else c.repaint();
+        });
+    }
     private void loadDoctors() {
         List<Doctor> available = new ArrayList<>();
         for (Doctor d : clinic.getDoctors()) if (d.isAvailable()) available.add(d);
