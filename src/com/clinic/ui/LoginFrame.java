@@ -109,6 +109,7 @@ public class LoginFrame extends JFrame {
                         + "Only authorized personnel can access this system</div></html>");
         footer.setFont(Theme.font(Font.PLAIN, 14));
         footer.setForeground(Theme.PRIMARY);
+        footer.setHorizontalAlignment(SwingConstants.CENTER);
         footer.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         card.add(lockCircle);
@@ -121,10 +122,16 @@ public class LoginFrame extends JFrame {
         card.add(passRow);
         card.add(Box.createVerticalStrut(26));
         card.add(loginButton);
+        JPanel footerWrap = new JPanel(new GridBagLayout());
+        footerWrap.setOpaque(false);
+        footerWrap.setAlignmentX(Component.CENTER_ALIGNMENT);
+        footerWrap.add(footer); // add first, then measure, so the height isn't locked to an empty panel
+        footerWrap.setMaximumSize(new Dimension(Integer.MAX_VALUE, footerWrap.getPreferredSize().height));
+
         card.add(Box.createVerticalStrut(8));
         card.add(errorLabel);
         card.add(Box.createVerticalStrut(14));
-        card.add(footer);
+        card.add(footerWrap);
 
         // Pressing Enter anywhere triggers login
         getRootPane().setDefaultButton(loginButton);
@@ -148,7 +155,7 @@ public class LoginFrame extends JFrame {
     }
 
     private JButton buildLoginButton() {
-        JButton button = new JButton("Login as Admin   >") {
+        JButton button = new JButton("Login") {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();

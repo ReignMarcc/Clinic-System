@@ -16,7 +16,7 @@ public class InputValidator {
     public static final int MAX_NAME_LENGTH = 50;
     public static final int MAX_REASON_LENGTH = 200;
     public static final int MAX_NOTES_LENGTH = 500;
-    public static final LocalTime CLINIC_OPEN = LocalTime.of(8, 0);
+    public static final LocalTime CLINIC_OPEN = LocalTime.of(7, 0);
     public static final LocalTime CLINIC_CLOSE = LocalTime.of(17, 0);
     public static final int MAX_DAYS_AHEAD = 365;
 

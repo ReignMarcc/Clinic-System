@@ -124,17 +124,34 @@ public class ClinicManager {
         throw new InvalidInputException("Doctor with ID " + id + " not found!");
     }
 
-    /** The doctor must exist, be available, and have no pending appointment at the same time. */
+    private static final int DOCTOR_BUFFER_MINUTES = 30;       // gap required before an existing appointment
+    private static final int CONSULTATION_MINUTES = 60;        // each appointment occupies a full hour
+
+    /**
+     * The doctor must exist, be available, and have no appointment whose reserved
+     * window (30 minutes before it through the end of its 1-hour consultation)
+     * overlaps the proposed time. Checked in both directions so the result doesn't
+     * depend on which appointment happened to be booked first.
+     */
     private void ensureDoctorFree(String doctorId, LocalDateTime when) throws InvalidInputException {
         Doctor d = locateDoctor(doctorId);
         if (!d.isAvailable()) {
             throw new InvalidInputException(d.getName() + " is not available!");
         }
         for (Appointment a : appointments) {
-            if (a.getStatus() == AppointmentStatus.PENDING
-                    && doctorId.equalsIgnoreCase(a.getDoctorId())
-                    && a.getDateTime().equals(when)) {
-                throw new InvalidInputException(d.getName() + " already has an appointment at that time!");
+            if (a.getStatus() == AppointmentStatus.CANCELLED) continue;
+            if (!doctorId.equalsIgnoreCase(a.getDoctorId())) continue;
+
+            LocalDateTime existing = a.getDateTime();
+            boolean newFallsInExistingWindow = !when.isBefore(existing.minusMinutes(DOCTOR_BUFFER_MINUTES))
+                    && when.isBefore(existing.plusMinutes(CONSULTATION_MINUTES));
+            boolean existingFallsInNewWindow = !existing.isBefore(when.minusMinutes(DOCTOR_BUFFER_MINUTES))
+                    && existing.isBefore(when.plusMinutes(CONSULTATION_MINUTES));
+
+            if (newFallsInExistingWindow || existingFallsInNewWindow) {
+                throw new InvalidInputException(d.getName() + " is unavailable around that time (existing appointment at "
+                        + existing.toLocalTime() + "). Next available slot: "
+                        + existing.plusMinutes(CONSULTATION_MINUTES).toLocalTime() + " onwards.");
             }
         }
     }
@@ -170,14 +187,15 @@ public class ClinicManager {
 
     // --- Feature 1: Patient Registration ---
 
-    // Old signature kept so existing callers keep working (no doctor assigned)
-    public Patient registerPatient(String name, int age, String contact, LocalDateTime schedule, String reason)
-            throws InvalidInputException, DuplicatePatientException, PatientNotFoundException {
-        return registerPatient(name, age, contact, null, schedule, reason);
-    }
-
-    public Patient registerPatient(String name, int age, String contact, String doctorId,
-                                   LocalDateTime schedule, String reason)
+    /**
+     * Shared validation and creation logic for every "new patient (+ optional
+     * appointment)" flow. enforceFutureDay and enforceClinicHours let each
+     * public entry point (walk-in vs. scheduled appointment) apply only the
+     * rules that make sense for it.
+     */
+    private Patient registerPatientCore(String name, int age, String contact, String doctorId,
+                                        LocalDateTime schedule, String reason,
+                                        boolean enforceFutureDay, boolean enforceClinicHours)
             throws InvalidInputException, DuplicatePatientException, PatientNotFoundException {
         name = InputValidator.normalizeSpaces(name);
 
@@ -188,10 +206,17 @@ public class ClinicManager {
         if (isDuplicate(name, contact)) throw new DuplicatePatientException("Patient with same name and contact already exists!");
 
         if (schedule != null) {
-            String timeError = InputValidator.appointmentTimeError(schedule);
-            if (timeError != null) throw new InvalidInputException(timeError);
             if (reason != null && !InputValidator.isWithinLength(reason, InputValidator.MAX_REASON_LENGTH)) {
                 throw new InvalidInputException("Reason is too long (max " + InputValidator.MAX_REASON_LENGTH + " characters)!");
+            }
+            if (enforceFutureDay && !schedule.toLocalDate().isAfter(LocalDate.now())) {
+                throw new InvalidInputException("Appointments must be booked for a following day, not today.");
+            }
+            if (enforceClinicHours) {
+                java.time.LocalTime t = schedule.toLocalTime();
+                if (t.isBefore(InputValidator.CLINIC_OPEN) || !t.isBefore(InputValidator.CLINIC_CLOSE)) {
+                    throw new InvalidInputException("Clinic hours are " + InputValidator.CLINIC_OPEN + " to " + InputValidator.CLINIC_CLOSE + ".");
+                }
             }
             if (doctorId != null && !doctorId.isEmpty()) ensureDoctorFree(doctorId, schedule);
         }
@@ -204,6 +229,42 @@ public class ClinicManager {
             scheduleAppointment(p.getPatientId(), doctorId, schedule, reason);
         }
         return p;
+    }
+
+    /**
+     * Registers a walk-in patient. The visit time is fixed to right now (when they
+     * arrived and started waiting), so there's no date/time to enter - just who they
+     * are, which doctor will see them, and their reason for the visit.
+     */
+    public Patient registerWalkIn(String name, int age, String contact, String doctorId, String reason)
+            throws InvalidInputException, DuplicatePatientException, PatientNotFoundException {
+        if (!InputValidator.isValidReason(reason)) throw new InvalidInputException("Please enter a reason for the visit.");
+        return registerPatientCore(name, age, contact, doctorId, LocalDateTime.now(), reason, false, false);
+    }
+
+    /**
+     * Registers a patient with a scheduled appointment for a following day (same-day
+     * booking isn't allowed). Requires a doctor up front so the time picker can be
+     * checked against that doctor's existing schedule.
+     */
+    public Patient registerAppointment(String name, int age, String contact, String doctorId,
+                                       LocalDateTime schedule, String reason)
+            throws InvalidInputException, DuplicatePatientException, PatientNotFoundException {
+        if (!InputValidator.isValidReason(reason)) throw new InvalidInputException("Please enter a reason for the visit.");
+        if (doctorId == null || doctorId.isEmpty()) throw new InvalidInputException("Please select a doctor first.");
+        return registerPatientCore(name, age, contact, doctorId, schedule, reason, true, true);
+    }
+
+    // Old signatures kept so any other existing callers keep working.
+    public Patient registerPatient(String name, int age, String contact, LocalDateTime schedule, String reason)
+            throws InvalidInputException, DuplicatePatientException, PatientNotFoundException {
+        return registerPatientCore(name, age, contact, null, schedule, reason, false, true);
+    }
+
+    public Patient registerPatient(String name, int age, String contact, String doctorId,
+                                   LocalDateTime schedule, String reason)
+            throws InvalidInputException, DuplicatePatientException, PatientNotFoundException {
+        return registerPatientCore(name, age, contact, doctorId, schedule, reason, false, true);
     }
 
     // Extra: Emergency Registration (Name only)
@@ -378,6 +439,27 @@ public class ClinicManager {
         }
         if (today.isEmpty()) sb.append("No appointments scheduled for this date.\n");
         return sb.toString();
+    }
+
+    /**
+     * Patients who are "present" today: a non-cancelled appointment (scheduled visit
+     * or walk-in) dated today. A patient drops out of this list the moment their
+     * today's appointment is cancelled.
+     */
+    public List<Patient> getActiveTodayPatients() {
+        refreshAppointmentStatuses();
+        LocalDate today = LocalDate.now();
+        java.util.LinkedHashSet<String> ids = new java.util.LinkedHashSet<>();
+        for (Appointment a : appointments) {
+            if (a.getDateTime().toLocalDate().equals(today) && a.getStatus() != AppointmentStatus.CANCELLED) {
+                ids.add(a.getPatientId().toUpperCase());
+            }
+        }
+        List<Patient> result = new ArrayList<>();
+        for (Patient p : patients) {
+            if (ids.contains(p.getPatientId().toUpperCase())) result.add(p);
+        }
+        return result;
     }
 
     // --- Lookups used by the Search and Records pages ---

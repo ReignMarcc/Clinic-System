@@ -32,7 +32,6 @@ public class AppointmentPanel extends JPanel {
  private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("MMM d", Locale.ENGLISH);
 
  private final ClinicManager clinic;
- private final Runnable onAddPatient;
  private final Runnable onGenerateReport;
  private final Consumer<Patient> onViewPatient;
 
@@ -49,10 +48,9 @@ public class AppointmentPanel extends JPanel {
  private final JLabel footNote = new JLabel(" ");
  private List<Appointment> rows;
 
- public AppointmentPanel(ClinicManager clinic, Runnable onAddPatient, Runnable onGenerateReport,
+ public AppointmentPanel(ClinicManager clinic, Runnable onGenerateReport,
                          Consumer<Patient> onViewPatient) {
   this.clinic = clinic;
-  this.onAddPatient = onAddPatient;
   this.onGenerateReport = onGenerateReport;
   this.onViewPatient = onViewPatient;
 
@@ -76,7 +74,8 @@ public class AppointmentPanel extends JPanel {
  // ------------------------------------------------------------------
 
  public void refresh() {
-  patientsValue.setText(String.valueOf(clinic.getPatients().size()));
+  int activeToday = clinic.getActiveTodayPatients().size();
+  patientsValue.setText(String.valueOf(activeToday));
   pendingValue.setText(String.valueOf(clinic.getPendingAppointments().size()));
 
   Map<String, String> names = new HashMap<>();
@@ -85,7 +84,10 @@ public class AppointmentPanel extends JPanel {
   for (Doctor d : clinic.getDoctors()) docNames.put(d.getDoctorId().toUpperCase(), d.getName());
 
   rows = new java.util.ArrayList<>(clinic.getAppointments());
-  rows.sort(java.util.Comparator.comparing(Appointment::getDateTime));
+  // On-going first, then Pending, then Completed, then Cancelled; soonest first within each group
+  rows.sort(java.util.Comparator
+          .<Appointment>comparingInt(a -> statusRank(a.getStatus()))
+          .thenComparing(Appointment::getDateTime));
 
   model.setRowCount(0);
   for (Appointment a : rows) {
@@ -96,8 +98,18 @@ public class AppointmentPanel extends JPanel {
            a.getStatus().name(),
            "View"});
   }
-  footNote.setText(clinic.getPatients().size() + " active patients  -  "
+  footNote.setText(activeToday + " active patients  -  "
           + clinic.getPendingAppointments().size() + " pending appointments");
+ }
+
+ private static int statusRank(AppointmentStatus s) {
+  switch (s) {
+   case ON_GOING: return 0;
+   case PENDING: return 1;
+   case COMPLETED: return 2;
+   case CANCELLED: return 3;
+   default: return 4;
+  }
  }
 
  // ------------------------------------------------------------------
@@ -184,7 +196,7 @@ public class AppointmentPanel extends JPanel {
   card.setLayout(new BorderLayout(0, 12));
   card.setBorder(new EmptyBorder(18, 24, 16, 24));
 
-  JLabel title = new JLabel("Pending Appointments");
+  JLabel title = new JLabel("All Appointments");
   title.setFont(Theme.font(Font.BOLD, 22));
   title.setForeground(Theme.TEXT_DARK);
   card.add(title, BorderLayout.NORTH);

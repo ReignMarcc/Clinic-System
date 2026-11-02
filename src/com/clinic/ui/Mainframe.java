@@ -23,17 +23,16 @@ public class Mainframe extends JFrame {
     public static final String PAGE_PATIENTS     = "Patients";
     public static final String PAGE_APPOINTMENTS = "Appointments";
     public static final String PAGE_RECORDS      = "Records";
-    public static final String PAGE_SEARCH       = "Search";
     public static final String PAGE_REPORTS      = "Reports";
     public static final String PAGE_SETTINGS     = "Settings";
 
     private static final String[] PAGE_NAMES = {
             PAGE_DASHBOARD, PAGE_PATIENTS, PAGE_APPOINTMENTS, PAGE_RECORDS,
-            PAGE_SEARCH, PAGE_REPORTS, PAGE_SETTINGS
+            PAGE_REPORTS, PAGE_SETTINGS
     };
     private static final Icons.Type[] PAGE_ICONS = {
             Icons.Type.HOME, Icons.Type.PATIENTS, Icons.Type.CALENDAR, Icons.Type.RECORDS,
-            Icons.Type.SEARCH, Icons.Type.REPORTS, Icons.Type.SETTINGS
+            Icons.Type.REPORTS, Icons.Type.SETTINGS
     };
 
     private static final int SIDEBAR_EXPANDED = 270;
@@ -43,7 +42,6 @@ public class Mainframe extends JFrame {
     private final DashboardPanel dashboard;
     private final AppointmentPanel appointmentPanel;
     private final RegistrationPanel patientsPanel;
-    private final SearchPanel searchPanel;
     private final RecordsPanel recordsPanel;
     private final ReportPanel reportPanel;
     private final Timer statusTimer;
@@ -60,17 +58,12 @@ public class Mainframe extends JFrame {
     public Mainframe(ClinicManager clinic) {
         super("Clinic Management System");
         this.clinic = clinic;
-        this.dashboard = new DashboardPanel(clinic,
-                () -> showPage(PAGE_APPOINTMENTS),
-                () -> showPage(PAGE_SETTINGS),
-                this::logout);
-        this.recordsPanel = new RecordsPanel(clinic, () -> showPage(PAGE_SEARCH));
+        this.dashboard = new DashboardPanel(clinic, () -> showPage(PAGE_APPOINTMENTS));
+        this.recordsPanel = new RecordsPanel(clinic);
         this.appointmentPanel = new AppointmentPanel(clinic,
-                () -> AddPatientDialog.open(this, clinic, this::refreshData),
                 () -> showPage(PAGE_REPORTS),
                 this::openPatientRecord);
         this.patientsPanel = new RegistrationPanel(clinic, this::openPatientRecord);
-        this.searchPanel = new SearchPanel(clinic, this::openPatientRecord, this::openDoctorRecord);
         this.reportPanel = new ReportPanel(clinic);
 
         setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -91,7 +84,6 @@ public class Mainframe extends JFrame {
         }
         setPage(PAGE_SETTINGS, new SettingsPanel());
         setPage(PAGE_APPOINTMENTS, appointmentPanel);
-        setPage(PAGE_SEARCH, searchPanel);
         setPage(PAGE_RECORDS, recordsPanel);
         setPage(PAGE_PATIENTS, patientsPanel);
         setPage(PAGE_REPORTS, reportPanel);
@@ -125,7 +117,6 @@ public class Mainframe extends JFrame {
         if (PAGE_DASHBOARD.equals(name)) dashboard.refresh();
         if (PAGE_APPOINTMENTS.equals(name)) appointmentPanel.refresh();
         if (PAGE_PATIENTS.equals(name)) patientsPanel.refreshData();
-        if (PAGE_SEARCH.equals(name)) searchPanel.refresh();
         if (PAGE_RECORDS.equals(name)) recordsPanel.refresh();
     }
 
@@ -163,7 +154,6 @@ public class Mainframe extends JFrame {
         dashboard.refresh();
         appointmentPanel.refresh();
         patientsPanel.refreshData();
-        searchPanel.refresh();
         recordsPanel.refresh();
     }
 

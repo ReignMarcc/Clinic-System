@@ -58,18 +58,30 @@ public class RegistrationPanel extends JPanel {
         searchWrap.setOpaque(false);
         searchWrap.add(searchRow);
 
-        PillButton add = PillButton.primary("Add Patient", Icons.of(Icons.Type.PLUS_CIRCLE, 22, Color.WHITE));
-        add.setFont(Theme.font(Font.BOLD, 16));
-        add.setPreferredSize(new Dimension(180, 46));
-        add.addActionListener(e -> {
+        PillButton addWalkIn = PillButton.primary("Add Walk-in", Icons.of(Icons.Type.PLUS_CIRCLE, 20, Color.WHITE));
+        addWalkIn.setFont(Theme.font(Font.BOLD, 15));
+        addWalkIn.setPreferredSize(new Dimension(190, 46));
+        addWalkIn.addActionListener(e -> {
             Window owner = SwingUtilities.getWindowAncestor(this);
             if (owner instanceof JFrame) {
-                AddPatientDialog.open((JFrame) owner, clinic, this::refreshData);
+                AddWalkInDialog.open((JFrame) owner, clinic, this::refreshData);
             }
         });
-        JPanel addWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+
+        PillButton addAppt = PillButton.primary("Add Appointment", Icons.of(Icons.Type.CALENDAR, 20, Color.WHITE));
+        addAppt.setFont(Theme.font(Font.BOLD, 15));
+        addAppt.setPreferredSize(new Dimension(220, 46));
+        addAppt.addActionListener(e -> {
+            Window owner = SwingUtilities.getWindowAncestor(this);
+            if (owner instanceof JFrame) {
+                AddAppointmentDialog.open((JFrame) owner, clinic, this::refreshData);
+            }
+        });
+
+        JPanel addWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         addWrap.setOpaque(false);
-        addWrap.add(add);
+        addWrap.add(addWalkIn);
+        addWrap.add(addAppt);
 
         JPanel actionRow = new JPanel(new BorderLayout(16, 0));
         actionRow.setOpaque(false);

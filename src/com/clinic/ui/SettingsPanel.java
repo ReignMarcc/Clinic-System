@@ -1,21 +1,138 @@
 package com.clinic.ui;
 
 import com.clinic.util.AdminCredentials;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
-/** Allows the signed-in clinic admin to update their login credentials. */
+/**
+ * Settings page, phone-style: a tappable list of menu items. Tapping one
+ * reveals its content in place of the list; a back link returns to the menu.
+ * Only "Account Settings" exists for now, so more items can be added later
+ * without changing this structure.
+ */
 public class SettingsPanel extends JPanel {
+
+    private final CardLayout cards = new CardLayout();
+    private final JPanel body = new JPanel(cards);
+
     private final JTextField currentEmail = new JTextField(AdminCredentials.getEmail(), 24);
     private final JPasswordField currentPassword = new JPasswordField(24);
     private final JTextField newEmail = new JTextField(AdminCredentials.getEmail(), 24);
     private final JPasswordField newPassword = new JPasswordField(24);
     private final JPasswordField confirmPassword = new JPasswordField(24);
 
+    private static final String MENU = "menu";
+    private static final String ACCOUNT = "account";
+
     public SettingsPanel() {
-        setLayout(new GridBagLayout());
+        setLayout(new BorderLayout(0, 18));
         setBackground(Theme.CONTENT_BG);
+        setBorder(new EmptyBorder(18, 22, 22, 22));
+
+        add(UiKit.pageTopBar("Settings"), BorderLayout.NORTH);
+
+        body.setOpaque(false);
+        body.add(buildMenu(), MENU);
+        body.add(buildAccountSettings(), ACCOUNT);
+        add(body, BorderLayout.CENTER);
+
+        cards.show(body, MENU);
+    }
+
+    // ------------------------------------------------------------------
+    // Menu list
+    // ------------------------------------------------------------------
+
+    private JComponent buildMenu() {
+        JPanel wrap = new JPanel(new BorderLayout());
+        wrap.setOpaque(false);
+
+        UiKit.Card card = new UiKit.Card(20, Color.WHITE, Theme.CARD_STROKE);
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBorder(new EmptyBorder(8, 8, 8, 8));
+        card.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        card.add(menuRow("Account Settings", "Change your login email and password",
+                Icons.Type.USER, () -> cards.show(body, ACCOUNT)));
+
+        JPanel top = new JPanel(new BorderLayout());
+        top.setOpaque(false);
+        top.add(card, BorderLayout.NORTH);
+        wrap.add(top, BorderLayout.NORTH);
+        return wrap;
+    }
+
+    private JComponent menuRow(String title, String subtitle, Icons.Type icon, Runnable onClick) {
+        JPanel row = new JPanel(new BorderLayout(16, 0));
+        row.setOpaque(true);
+        row.setBackground(Color.WHITE);
+        row.setBorder(new EmptyBorder(16, 14, 16, 14));
+        row.setCursor(Theme.hand());
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 72));
+
+        JLabel iconLabel = new JLabel(Icons.of(icon, 24, Theme.PRIMARY));
+        row.add(iconLabel, BorderLayout.WEST);
+
+        JPanel text = new JPanel();
+        text.setOpaque(false);
+        text.setLayout(new BoxLayout(text, BoxLayout.Y_AXIS));
+        JLabel t = new JLabel(title);
+        t.setFont(Theme.font(Font.BOLD, 17));
+        t.setForeground(Theme.TEXT_DARK);
+        JLabel s = new JLabel(subtitle);
+        s.setFont(Theme.font(Font.PLAIN, 13));
+        s.setForeground(Theme.TEXT_MUTED);
+        text.add(t);
+        text.add(Box.createVerticalStrut(2));
+        text.add(s);
+        row.add(text, BorderLayout.CENTER);
+
+        JLabel chevron = new JLabel(Icons.of(Icons.Type.ARROW_LEFT, 16, Theme.TEXT_MUTED)) {
+            @Override
+            public void paint(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.rotate(Math.PI, getWidth() / 2.0, getHeight() / 2.0); // arrow-left, flipped, points right
+                super.paint(g2);
+                g2.dispose();
+            }
+        };
+        chevron.setBorder(new EmptyBorder(0, 0, 0, 6));
+        row.add(chevron, BorderLayout.EAST);
+
+        row.addMouseListener(new MouseAdapter() {
+            @Override public void mouseEntered(MouseEvent e) { row.setBackground(new Color(0xF2F5F7)); }
+            @Override public void mouseExited(MouseEvent e)  { row.setBackground(Color.WHITE); }
+            @Override public void mouseClicked(MouseEvent e) { onClick.run(); }
+        });
+        return row;
+    }
+
+    // ------------------------------------------------------------------
+    // Account Settings content (only shown after tapping the menu row)
+    // ------------------------------------------------------------------
+
+    private JComponent buildAccountSettings() {
+        JPanel wrap = new JPanel(new BorderLayout(0, 14));
+        wrap.setOpaque(false);
+
+        JButton back = new JButton("Back to Settings", Icons.of(Icons.Type.ARROW_LEFT, 16, Theme.PRIMARY));
+        back.setFont(Theme.font(Font.BOLD, 14));
+        back.setForeground(Theme.PRIMARY);
+        back.setIconTextGap(8);
+        back.setContentAreaFilled(false);
+        back.setBorderPainted(false);
+        back.setFocusPainted(false);
+        back.setCursor(Theme.hand());
+        back.addActionListener(e -> cards.show(body, MENU));
+        wrap.add(back, BorderLayout.NORTH);
+
+        JPanel center = new JPanel(new GridBagLayout());
+        center.setOpaque(false);
+
         JPanel card = new JPanel(new GridBagLayout());
         card.setBackground(Color.WHITE);
         card.setBorder(new EmptyBorder(26, 30, 26, 30));
@@ -31,16 +148,17 @@ public class SettingsPanel extends JPanel {
         addRow(card, c, 5, "New password (8+ characters)", newPassword);
         addRow(card, c, 6, "Confirm new password", confirmPassword);
 
-        // Mas maliit na font at icon para kumasya yung buong "Save Changes"
         JButton save = PillButton.primary("Save Changes", Icons.of(Icons.Type.SETTINGS, 16, Color.WHITE));
         save.setFont(Theme.font(Font.BOLD, 14));
-        Dimension btnSize = new Dimension(165, 38);
+        Dimension btnSize = new Dimension(190, 40);
         save.setPreferredSize(btnSize);
         save.setMinimumSize(btnSize);
         save.addActionListener(e -> saveChanges());
 
         c.gridx = 1; c.gridy = 7; c.anchor = GridBagConstraints.EAST; card.add(save, c);
-        add(card);
+        center.add(card);
+        wrap.add(center, BorderLayout.CENTER);
+        return wrap;
     }
 
     private void addRow(JPanel panel, GridBagConstraints base, int row, String label, JComponent field) {

@@ -45,7 +45,7 @@ public class RecordsPanel extends JPanel {
     private enum View { LIST, DETAIL }
 
     private final ClinicManager clinic;
-    private final Runnable onGoToSearch;
+
 
     private View view = View.LIST;
     private Tab tab = Tab.PATIENTS;
@@ -63,9 +63,8 @@ public class RecordsPanel extends JPanel {
     private final VScrollPanel holder = new VScrollPanel(new BorderLayout());
     private final JScrollPane scroll;
 
-    public RecordsPanel(ClinicManager clinic, Runnable onGoToSearch) {
+    public RecordsPanel(ClinicManager clinic) {
         this.clinic = clinic;
-        this.onGoToSearch = onGoToSearch;
 
         setLayout(new BorderLayout(0, 14));
         setBackground(Theme.CONTENT_BG);
@@ -214,21 +213,10 @@ public class RecordsPanel extends JPanel {
         tabsRow.add(Box.createHorizontalStrut(18));
 
         JComponent filterBox = new FormField(Icons.of(Icons.Type.SEARCH, 16, Theme.TEXT_MUTED), filterField, null);
-        filterBox.setPreferredSize(new Dimension(260, 40));
-        filterBox.setMaximumSize(new Dimension(260, 40));
+        filterBox.setPreferredSize(new Dimension(280, 40));
+        filterBox.setMaximumSize(new Dimension(280, 40));
         tabsRow.add(filterBox);
         tabsRow.add(Box.createHorizontalGlue());
-
-        JButton fullSearch = new JButton("Go to full Search", Icons.of(Icons.Type.SEARCH, 15, Theme.PRIMARY));
-        fullSearch.setFont(Theme.font(Font.BOLD, 14));
-        fullSearch.setForeground(Theme.PRIMARY);
-        fullSearch.setIconTextGap(6);
-        fullSearch.setContentAreaFilled(false);
-        fullSearch.setBorderPainted(false);
-        fullSearch.setFocusPainted(false);
-        fullSearch.setCursor(Theme.hand());
-        fullSearch.addActionListener(e -> onGoToSearch.run());
-        tabsRow.add(fullSearch);
 
         page.add(tabsRow);
         page.add(Box.createVerticalStrut(14));
@@ -659,7 +647,10 @@ public class RecordsPanel extends JPanel {
     }
 
     private JComponent profileCard(JComponent avatar, String name, String subtitle, JComponent badge, String[][] info) {
-        UiKit.Card card = new UiKit.Card(18, Color.WHITE, Theme.CARD_STROKE);
+        // Larger radius than the smaller cards below it: this card is much wider/taller,
+        // so the same pixel radius that looks rounded on a small tile reads as almost
+        // sharp here. A bigger arc keeps it visually consistent with the rest of the page.
+        UiKit.Card card = new UiKit.Card(28, Color.WHITE, Theme.CARD_STROKE);
         card.setLayout(new BorderLayout(0, 16));
         card.setBorder(new EmptyBorder(20, 24, 20, 24));
 

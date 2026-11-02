@@ -292,8 +292,10 @@ public final class UiKit {
     }
 
     // ------------------------------------------------------------------
-    // Page top bar: title on the left, bell + avatar + today's date on the right.
-    // Builds the date fresh every call, so it's never stale like a cached label.
+    // Page top bar: title on the left, today's date on the right.
+    // Logging out happens from the admin profile in the sidebar, so this
+    // bar carries nothing else. Builds the date fresh every call, so it's
+    // never stale like a cached label.
     // ------------------------------------------------------------------
 
     public static JComponent pageTopBar(String title) {
@@ -305,25 +307,14 @@ public final class UiKit {
         titleLabel.setForeground(Theme.TEXT_DARK);
         bar.add(titleLabel, BorderLayout.WEST);
 
-        JPanel right = new JPanel();
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         right.setOpaque(false);
-        right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
-
-        JPanel row1 = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
-        row1.setOpaque(false);
-        row1.add(new IconButton(Icons.of(Icons.Type.BELL, 20, Theme.PRIMARY), "Notifications", new Color(0, 0, 0, 25)));
-        row1.add(new JLabel(Icons.of(Icons.Type.AVATAR, 30, Theme.TEXT_DARK)));
-
-        JPanel row2 = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
-        row2.setOpaque(false);
         JLabel dateLabel = new JLabel(formatDate(LocalDate.now())); // computed now, never cached
         dateLabel.setFont(Theme.font(Font.PLAIN, 13));
         dateLabel.setForeground(Theme.TEXT_DARK);
-        row2.add(dateLabel);
-        row2.add(new JLabel(Icons.of(Icons.Type.CALENDAR, 18, Theme.PRIMARY)));
+        right.add(dateLabel);
+        right.add(new JLabel(Icons.of(Icons.Type.CALENDAR, 18, Theme.PRIMARY)));
 
-        right.add(row1);
-        right.add(row2);
         bar.add(right, BorderLayout.EAST);
         return bar;
     }

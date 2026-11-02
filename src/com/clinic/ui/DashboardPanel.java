@@ -33,8 +33,6 @@ public class DashboardPanel extends JPanel {
 
     private final ClinicManager clinic;
     private final Runnable onViewAll;
-    private final Runnable onSettings;
-    private final Runnable onLogout;
 
     private final StatCard patientsCard = new StatCard(Icons.Type.PEOPLE, Theme.TILE_BLUE, "Active Patients");
     private final StatCard pendingCard  = new StatCard(Icons.Type.CALENDAR_CLOCK, Theme.TILE_YELLOW, "Pending Appointments");
@@ -47,11 +45,9 @@ public class DashboardPanel extends JPanel {
     };
     private final JPanel tableHolder = new JPanel(new CardLayout());
 
-    public DashboardPanel(ClinicManager clinic, Runnable onViewAll, Runnable onSettings, Runnable onLogout) {
+    public DashboardPanel(ClinicManager clinic, Runnable onViewAll) {
         this.clinic = clinic;
         this.onViewAll = onViewAll;
-        this.onSettings = onSettings;
-        this.onLogout = onLogout;
 
         setLayout(new BorderLayout(0, 18));
         setBackground(Theme.CONTENT_BG);
@@ -75,7 +71,7 @@ public class DashboardPanel extends JPanel {
     public void refresh() {
         dateLabel.setText(LocalDate.now().format(DATE_FMT));
 
-        patientsCard.setValue(clinic.getPatients().size());
+        patientsCard.setValue(clinic.getActiveTodayPatients().size());
         pendingCard.setValue(clinic.getPendingAppointments().size());
         int onDuty = 0;
         for (Doctor d : clinic.getDoctors()) if (d.isAvailable()) onDuty++;
@@ -118,28 +114,12 @@ public class DashboardPanel extends JPanel {
         title.setForeground(Theme.TEXT_DARK);
         bar.add(title, BorderLayout.WEST);
 
-        JPanel right = new JPanel();
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         right.setOpaque(false);
-        right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
-
-        JPanel row1 = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
-        row1.setOpaque(false);
-        row1.add(new IconButton(Icons.of(Icons.Type.BELL, 20, Theme.PRIMARY), "Notifications", new Color(0, 0, 0, 25)));
-
-        IconButton avatar = new IconButton(
-                Icons.of(Icons.Type.AVATAR, 30, Theme.TEXT_DARK), "Account", new Color(0, 0, 0, 25));
-        avatar.addActionListener(e -> AccountMenu.show(avatar, onSettings, onLogout, true, false));
-        row1.add(avatar);
-
-        JPanel row2 = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
-        row2.setOpaque(false);
         dateLabel.setFont(Theme.font(Font.PLAIN, 13));
         dateLabel.setForeground(Theme.TEXT_DARK);
-        row2.add(dateLabel);
-        row2.add(new JLabel(Icons.of(Icons.Type.CALENDAR, 18, Theme.PRIMARY)));
-
-        right.add(row1);
-        right.add(row2);
+        right.add(dateLabel);
+        right.add(new JLabel(Icons.of(Icons.Type.CALENDAR, 18, Theme.PRIMARY)));
         bar.add(right, BorderLayout.EAST);
         return bar;
     }
