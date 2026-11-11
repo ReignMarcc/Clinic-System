@@ -607,6 +607,12 @@ public class RecordsPanel extends JPanel {
         }
 
         private void act(String appointmentId, boolean complete) {
+            if (!complete) {
+                int choice = JOptionPane.showConfirmDialog(owner,
+                        "Cancel this appointment? This can't be undone.",
+                        "Confirm cancellation", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+                if (choice != JOptionPane.YES_OPTION) return;
+            }
             try {
                 if (complete) clinic.completeAppointment(appointmentId);
                 else clinic.cancelAppointment(appointmentId);
@@ -759,7 +765,7 @@ public class RecordsPanel extends JPanel {
     }
 
     private JComponent sectionCard(String title, String hint, JComponent content) {
-        UiKit.Card card = new UiKit.Card(18, Color.WHITE, Theme.CARD_STROKE);
+        UiKit.Card card = new UiKit.Card(24, Color.WHITE, Theme.CARD_STROKE);
         card.setLayout(new BorderLayout(0, 10));
         card.setBorder(new EmptyBorder(16, 20, 18, 20));
 

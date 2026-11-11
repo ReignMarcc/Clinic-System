@@ -23,40 +23,28 @@ public class TimePicker extends JPanel {
 
     public TimePicker() {
         setOpaque(false);
-        setLayout(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        // Centered, single row: the field's own label already says "Appointment Time",
+        // so no extra "Hour"/"Minute" captions are needed, keeping this short enough
+        // to fit inside the same 46px-tall row every other field uses.
+        setLayout(new FlowLayout(FlowLayout.CENTER, 8, 0));
 
-        style(hourSpinner, 86);
+        style(hourSpinner, 78);
         JSpinner.NumberEditor minuteEditor = new JSpinner.NumberEditor(minuteSpinner, "00");
         minuteSpinner.setEditor(minuteEditor);
-        style(minuteSpinner, 64);
+        style(minuteSpinner, 56);
 
         JLabel colon = new JLabel(":");
-        colon.setFont(Theme.font(Font.BOLD, 20));
+        colon.setFont(Theme.font(Font.BOLD, 16));
         colon.setForeground(Theme.SIDEBAR_BG);
 
-        add(column(hourSpinner, "Hour"));
+        add(hourSpinner);
         add(colon);
-        add(column(minuteSpinner, "Minute"));
-    }
-
-    private static JPanel column(JSpinner spinner, String caption) {
-        JPanel p = new JPanel();
-        p.setOpaque(false);
-        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
-        spinner.setAlignmentX(Component.CENTER_ALIGNMENT);
-        JLabel label = new JLabel(caption);
-        label.setFont(Theme.font(Font.PLAIN, 11));
-        label.setForeground(Theme.TEXT_MUTED);
-        label.setAlignmentX(Component.CENTER_ALIGNMENT);
-        p.add(spinner);
-        p.add(Box.createVerticalStrut(2));
-        p.add(label);
-        return p;
+        add(minuteSpinner);
     }
 
     private static void style(JSpinner spinner, int width) {
-        spinner.setPreferredSize(new Dimension(width, 40));
-        spinner.setFont(Theme.font(Font.BOLD, 16));
+        spinner.setPreferredSize(new Dimension(width, 32));
+        spinner.setFont(Theme.font(Font.BOLD, 14));
         JComponent editor = spinner.getEditor();
         if (editor instanceof JSpinner.DefaultEditor) {
             JTextField field = ((JSpinner.DefaultEditor) editor).getTextField();

@@ -229,6 +229,7 @@ public class AddWalkInDialog extends JDialog {
             @Override public void popupMenuCanceled(javax.swing.event.PopupMenuEvent e) { repaintLater(combo); }
         });
         combo.addItemListener(e -> repaintLater(combo));
+        combo.addActionListener(e -> repaintLater(combo));
 
         combo.setRenderer(new DefaultListCellRenderer() {
             @Override
@@ -253,11 +254,17 @@ public class AddWalkInDialog extends JDialog {
     }
 
     private static void repaintLater(JComponent c) {
-        SwingUtilities.invokeLater(() -> {
-            JRootPane root = SwingUtilities.getRootPane(c);
-            if (root != null) root.repaint();
-            else c.repaint();
-        });
+        // JComboBox with a custom UI sometimes doesn't repaint its displayed
+        // value right away; force it immediately and again next pulse so the
+        // picked doctor shows up without needing an unrelated click first.
+        Runnable force = () -> {
+            c.invalidate();
+            c.revalidate();
+            Window w = SwingUtilities.getWindowAncestor(c);
+            if (w != null) w.repaint(); else c.repaint();
+        };
+        force.run();
+        SwingUtilities.invokeLater(force);
     }
 
     private void loadDoctors() {

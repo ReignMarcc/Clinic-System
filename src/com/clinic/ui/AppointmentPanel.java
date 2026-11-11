@@ -226,31 +226,14 @@ public class AppointmentPanel extends JPanel {
  }
 
  // ------------------------------------------------------------------
- // View button -> popup with Edit Records / Cancel Appointment
+ // View button -> straight to that patient's record (edit/cancel happen there)
  // ------------------------------------------------------------------
 
- private void showViewMenu(int row) {
+ private void openRecordForRow(int row) {
   if (rows == null || row < 0 || row >= rows.size()) return;
   Appointment a = rows.get(row);
   Patient patient = findPatient(a.getPatientId());
-  if (patient == null) return;
-
-  JPopupMenu menu = new JPopupMenu();
-  menu.setBackground(Color.WHITE);
-  menu.setBorder(new CompoundBorder(new LineBorder(Theme.CARD_STROKE), new EmptyBorder(6, 6, 6, 6)));
-
-  AccountMenu.MenuButton edit = new AccountMenu.MenuButton("Edit Records", Theme.TEXT_DARK);
-  edit.addActionListener(e -> { menu.setVisible(false); onViewPatient.accept(patient); });
-  AccountMenu.MenuButton cancel = new AccountMenu.MenuButton("Cancel Appointment", Theme.ERROR);
-  cancel.addActionListener(e -> { menu.setVisible(false); onViewPatient.accept(patient); });
-  menu.add(edit);
-  menu.add(cancel);
-
-  // lalabas sa ilalim ng View button ng row na pinindot, nakadikit sa kanang gilid
-  Rectangle cell = table.getCellRect(row, 4, true);
-  int x = cell.x + cell.width - menu.getPreferredSize().width - 8;
-  int y = cell.y + cell.height - 6;
-  menu.show(table, Math.max(0, x), y);
+  if (patient != null) onViewPatient.accept(patient);
  }
 
  private Patient findPatient(String patientId) {
@@ -260,7 +243,7 @@ public class AppointmentPanel extends JPanel {
   return null;
  }
 
- /** Renders and edits the Action column as a small "View" button. */
+ /** Renders and edits the Action column as a small "View" button, left-aligned to match the header. */
  private class ViewButtonCell extends AbstractCellEditor implements javax.swing.table.TableCellRenderer, javax.swing.table.TableCellEditor {
   private int editingRow;
 
@@ -272,7 +255,7 @@ public class AppointmentPanel extends JPanel {
 
   @Override
   public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foc, int r, int c) {
-   JPanel holder = new JPanel(new GridBagLayout());
+   JPanel holder = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 0));
    holder.setOpaque(true);
    holder.setBackground(Color.WHITE);
    holder.add(makeButton());
@@ -282,13 +265,13 @@ public class AppointmentPanel extends JPanel {
   @Override
   public Component getTableCellEditorComponent(JTable t, Object v, boolean sel, int r, int c) {
    editingRow = r;
-   JPanel holder = new JPanel(new GridBagLayout());
+   JPanel holder = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 0));
    holder.setOpaque(true);
    holder.setBackground(Color.WHITE);
    JButton b = makeButton();
    b.addActionListener(e -> {
     fireEditingStopped();
-    showViewMenu(editingRow);
+    openRecordForRow(editingRow);
    });
    holder.add(b);
    return holder;
