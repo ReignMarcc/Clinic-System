@@ -22,6 +22,7 @@ public final class AdminCredentials {
 
     public static synchronized boolean authenticate(String email, char[] password) {
         Properties p = load();
+        if (email == null || password == null) return false;
         if (!p.getProperty("email", DEFAULT_EMAIL).equalsIgnoreCase(email.trim())) return false;
         String saltText = p.getProperty("salt");
         String hashText = p.getProperty("hash");

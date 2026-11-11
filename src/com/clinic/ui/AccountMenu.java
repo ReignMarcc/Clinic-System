@@ -10,9 +10,20 @@ public final class AccountMenu {
 
     public static void show(Component anchor, Runnable onSettings, Runnable onLogout,
                             boolean alignRight, boolean openAbove) {
-        JPopupMenu menu = new JPopupMenu();
+        JPopupMenu menu = new JPopupMenu() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                Theme.antialias(g2);
+                g2.setColor(Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+                g2.dispose();
+            }
+        };
+        menu.setOpaque(false);
+        menu.setLightWeightPopupEnabled(true);
         menu.setBackground(Color.WHITE);
-        menu.setBorder(new CompoundBorder(new LineBorder(Theme.CARD_STROKE), new EmptyBorder(8, 8, 8, 8)));
+        menu.setBorder(new CompoundBorder(new UiKit.RoundBorder(Theme.CARD_STROKE, 18, 0, 0), new EmptyBorder(8, 8, 8, 8)));
 
         JLabel name = new JLabel("Admin");
         name.setFont(Theme.font(Font.BOLD, 16));
@@ -69,7 +80,7 @@ public final class AccountMenu {
                 Graphics2D g2 = (Graphics2D) g.create();
                 Theme.antialias(g2);
                 g2.setColor(new Color(0xE3EEF3));
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
                 g2.dispose();
             }
             super.paintComponent(g);

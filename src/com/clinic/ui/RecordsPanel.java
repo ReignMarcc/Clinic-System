@@ -88,6 +88,7 @@ public class RecordsPanel extends JPanel {
         header.add(backButton, BorderLayout.EAST);
         add(header, BorderLayout.NORTH);
 
+        holderInner.setOpaque(false);
         holder.add(holderInner, BorderLayout.NORTH);
         scroll = new JScrollPane(holder);
         scroll.setBorder(null);
@@ -223,7 +224,7 @@ public class RecordsPanel extends JPanel {
 
         UiKit.Card card = new UiKit.Card(20, Color.WHITE, null);
         card.setLayout(new BorderLayout());
-        card.setBorder(new EmptyBorder(14, 14, 14, 14));
+        card.setBorder(new EmptyBorder(4, 4, 4, 4));
         card.setAlignmentX(Component.LEFT_ALIGNMENT);
         card.setPreferredSize(new Dimension(100, 520));
         card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 520));
@@ -234,12 +235,10 @@ public class RecordsPanel extends JPanel {
         inner.setName("recordsList"); // found later to refresh without rebuilding the whole page
         JPanel innerHolder = new JPanel(new BorderLayout());
         innerHolder.setOpaque(false);
+        innerHolder.setBorder(new EmptyBorder(10, 10, 10, 10));
         innerHolder.add(inner, BorderLayout.NORTH);
 
-        JScrollPane innerScroll = new JScrollPane(innerHolder);
-        innerScroll.setBorder(null);
-        innerScroll.setOpaque(false);
-        innerScroll.getViewport().setOpaque(false);
+        JScrollPane innerScroll = UiKit.roundScroll(innerHolder, 18, null, 0f);
         innerScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         card.add(innerScroll, BorderLayout.CENTER);
 
@@ -429,8 +428,9 @@ public class RecordsPanel extends JPanel {
     }
 
     private static JComponent wrapArea(JTextArea area, int height) {
-        JScrollPane sp = new JScrollPane(area);
-        sp.setBorder(new LineBorder(Theme.BORDER, 1, true));
+        JScrollPane sp = UiKit.roundScroll(area, 14, Theme.BORDER, 1f);
+        sp.getViewport().setOpaque(true);
+        sp.getViewport().setBackground(Color.WHITE);
         sp.setAlignmentX(Component.LEFT_ALIGNMENT);
         sp.setPreferredSize(new Dimension(100, height));
         sp.setMaximumSize(new Dimension(Integer.MAX_VALUE, height));
@@ -575,9 +575,7 @@ public class RecordsPanel extends JPanel {
         }
 
         private JComponent build(int row, boolean live) {
-            JPanel holder = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-            holder.setOpaque(true);
-            holder.setBackground(Color.WHITE);
+            JPanel holder = UiKit.actionRow(14);
             if (row < 0 || row >= appts.size()) return holder;
 
             Appointment a = appts.get(row);
@@ -602,6 +600,7 @@ public class RecordsPanel extends JPanel {
                 });
             }
             holder.add(complete);
+            holder.add(Box.createHorizontalStrut(6));
             holder.add(cancel);
             return holder;
         }
@@ -789,8 +788,8 @@ public class RecordsPanel extends JPanel {
     }
 
     private static JComponent tableScroll(JTable table) {
-        JScrollPane sp = new JScrollPane(table);
-        sp.setBorder(new LineBorder(new Color(0xD3D3D3), 1, true));
+        JScrollPane sp = UiKit.roundScroll(table, 14, new Color(0xD3D3D3), 1f);
+        sp.getViewport().setOpaque(true);
         sp.getViewport().setBackground(Color.WHITE);
         return sp;
     }

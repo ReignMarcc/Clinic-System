@@ -26,12 +26,12 @@ public class TimePicker extends JPanel {
         // Centered, single row: the field's own label already says "Appointment Time",
         // so no extra "Hour"/"Minute" captions are needed, keeping this short enough
         // to fit inside the same 46px-tall row every other field uses.
-        setLayout(new FlowLayout(FlowLayout.CENTER, 8, 0));
+        setLayout(new FlowLayout(FlowLayout.CENTER, 10, 5));
 
-        style(hourSpinner, 78);
+        style(hourSpinner, 110);
         JSpinner.NumberEditor minuteEditor = new JSpinner.NumberEditor(minuteSpinner, "00");
         minuteSpinner.setEditor(minuteEditor);
-        style(minuteSpinner, 56);
+        style(minuteSpinner, 86);
 
         JLabel colon = new JLabel(":");
         colon.setFont(Theme.font(Font.BOLD, 16));
@@ -43,8 +43,8 @@ public class TimePicker extends JPanel {
     }
 
     private static void style(JSpinner spinner, int width) {
-        spinner.setPreferredSize(new Dimension(width, 32));
-        spinner.setFont(Theme.font(Font.BOLD, 14));
+        spinner.setPreferredSize(new Dimension(width, 36));
+        spinner.setFont(Theme.font(Font.BOLD, 16));
         JComponent editor = spinner.getEditor();
         if (editor instanceof JSpinner.DefaultEditor) {
             JTextField field = ((JSpinner.DefaultEditor) editor).getTextField();

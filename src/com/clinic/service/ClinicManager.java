@@ -178,7 +178,8 @@ public class ClinicManager {
 
     private boolean isDuplicate(String name, String contact) {
         for (Patient p : patients) {
-            if (p.getName().equalsIgnoreCase(name) && p.getContactNumber().equals(contact)) {
+            if (InputValidator.normalizeSpaces(p.getName()).equalsIgnoreCase(InputValidator.normalizeSpaces(name))
+                    && p.getContactNumber() != null && p.getContactNumber().equals(contact)) {
                 return true;
             }
         }
@@ -270,6 +271,7 @@ public class ClinicManager {
     // Extra: Emergency Registration (Name only)
     public Patient registerEmergencyPatient(String name) throws InvalidInputException, PatientNotFoundException {
         if (!InputValidator.isNotBlank(name)) throw new InvalidInputException("Name cannot be blank!");
+        if (InputValidator.normalizeSpaces(name).length() > InputValidator.MAX_NAME_LENGTH) throw new InvalidInputException("Name is too long (max " + InputValidator.MAX_NAME_LENGTH + " characters)!");
 
         String pId = generatePatientId();
         Patient p = new Patient(pId, InputValidator.normalizeSpaces(name));
@@ -285,6 +287,7 @@ public class ClinicManager {
     public void updateRecord(String patientId, int age, String diagnosis, String notes, String contact)
             throws PatientNotFoundException, InvalidInputException {
         Patient p = locatePatient(patientId);
+        contact = contact == null ? null : contact.trim();
 
         if (contact != null && !contact.isEmpty() && !InputValidator.isValidContact(contact)) {
             throw new InvalidInputException("Invalid contact number format!");
@@ -388,8 +391,10 @@ public class ClinicManager {
 
     public List<Patient> searchByName(String partialName) {
         List<Patient> result = new ArrayList<>();
+        if (partialName == null) return result;
+        String needle = partialName.trim().toLowerCase();
         for (Patient p : patients) {
-            if (p.getName().toLowerCase().contains(partialName.toLowerCase())) {
+            if (p.getName().toLowerCase().contains(needle)) {
                 result.add(p);
             }
         }
@@ -489,7 +494,7 @@ public class ClinicManager {
         refreshAppointmentStatuses();
         List<Appointment> list = new ArrayList<>();
         for (Appointment a : appointments) {
-            if (a.getDoctorId().equalsIgnoreCase(doctorId)) list.add(a);
+            if (doctorId != null && a.getDoctorId().equalsIgnoreCase(doctorId)) list.add(a);
         }
         list.sort(Comparator.comparing(Appointment::getDateTime));
         return list;
@@ -526,7 +531,7 @@ public class ClinicManager {
         LocalDate today = LocalDate.now();
         int count = 0;
         for (Appointment a : appointments) {
-            if (a.getDoctorId().equalsIgnoreCase(doctorId)
+            if (doctorId != null && a.getDoctorId().equalsIgnoreCase(doctorId)
                     && a.getStatus() != AppointmentStatus.CANCELLED
                     && a.getDateTime().toLocalDate().equals(today)) {
                 count++;

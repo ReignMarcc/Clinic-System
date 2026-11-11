@@ -56,7 +56,11 @@ public class PatientFileHandler {
             try { age = Integer.parseInt(row.get(2).trim()); }
             catch (NumberFormatException e) { age = 0; }
 
-            result.add(new Patient(row.get(0).trim(), row.get(1), age, row.get(3).trim()));
+            final String id = row.get(0).trim();
+            boolean dup = false;
+            for (Patient existing : result) if (existing.getPatientId().equalsIgnoreCase(id)) { dup = true; break; }
+            if (dup) continue; // skip duplicate IDs from a hand-edited file
+            result.add(new Patient(id, row.get(1).trim(), age, row.get(3).trim()));
         }
         return result;
     }

@@ -1,0 +1,2 @@
+appointmentId,patientId,doctorId,dateTime,reason,status
+A1001,P54920,D001,2026-11-12T07:00,Check up,PENDING

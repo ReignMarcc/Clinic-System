@@ -214,8 +214,8 @@ public class AppointmentPanel extends JPanel {
   table.getColumnModel().getColumn(4).setCellRenderer(viewCell);
   table.getColumnModel().getColumn(4).setCellEditor(viewCell);
 
-  JScrollPane scroll = new JScrollPane(table);
-  scroll.setBorder(null);
+  JScrollPane scroll = UiKit.roundScroll(table, 14, null, 0f);
+  scroll.getViewport().setOpaque(true);
   scroll.getViewport().setBackground(Color.WHITE);
   card.add(scroll, BorderLayout.CENTER);
 
@@ -255,7 +255,7 @@ public class AppointmentPanel extends JPanel {
 
   @Override
   public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foc, int r, int c) {
-   JPanel holder = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 0));
+   JPanel holder = UiKit.actionRow(14);
    holder.setOpaque(true);
    holder.setBackground(Color.WHITE);
    holder.add(makeButton());
@@ -265,7 +265,7 @@ public class AppointmentPanel extends JPanel {
   @Override
   public Component getTableCellEditorComponent(JTable t, Object v, boolean sel, int r, int c) {
    editingRow = r;
-   JPanel holder = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 0));
+   JPanel holder = UiKit.actionRow(14);
    holder.setOpaque(true);
    holder.setBackground(Color.WHITE);
    JButton b = makeButton();

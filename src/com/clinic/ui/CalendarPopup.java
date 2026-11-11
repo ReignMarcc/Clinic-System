@@ -54,9 +54,22 @@ public class CalendarPopup extends JPopupMenu {
         prev.addActionListener(e -> { shown = shown.minusMonths(1); rebuild(); });
         next.addActionListener(e -> { shown = shown.plusMonths(1); rebuild(); });
 
-        setBorder(new LineBorder(Theme.BORDER));
+        setOpaque(false);
+        setLightWeightPopupEnabled(true);
+        setBorder(new UiKit.RoundBorder(Theme.BORDER, 16, 0, 0));
+        root.setOpaque(false);
         add(root);
         rebuild();
+    }
+
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        Graphics2D g2 = (Graphics2D) g.create();
+        Theme.antialias(g2);
+        g2.setColor(Color.WHITE);
+        g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+        g2.dispose();
     }
 
     private static JButton navButton(String text) {

@@ -42,7 +42,7 @@ public class PillButton extends JButton {
         Theme.antialias(g2);
         ButtonModel m = getModel();
         g2.setColor(m.isPressed() ? pressed : m.isRollover() ? hover : bg);
-        g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 24, 24);
+        g2.fillRoundRect(0, 0, getWidth(), getHeight(), 24, 24);
         if (outline != null) {
             g2.setColor(outline);
             g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 24, 24);

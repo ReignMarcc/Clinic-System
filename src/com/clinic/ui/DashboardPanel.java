@@ -216,8 +216,8 @@ public class DashboardPanel extends JPanel {
             }
         });
 
-        JScrollPane scroll = new JScrollPane(table);
-        scroll.setBorder(new LineBorder(new Color(0xD3D3D3), 2, true));
+        JScrollPane scroll = UiKit.roundScroll(table, 16, new Color(0xD3D3D3), 2f);
+        scroll.getViewport().setOpaque(true);
         scroll.getViewport().setBackground(Color.WHITE);
         return scroll;
     }

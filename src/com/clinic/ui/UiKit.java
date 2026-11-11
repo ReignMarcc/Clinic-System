@@ -72,7 +72,7 @@ public final class UiKit {
             Graphics2D g2 = (Graphics2D) g.create();
             Theme.antialias(g2);
             g2.setColor(fill);
-            g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, arc, arc);
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), arc, arc);
             if (outline != null) {
                 int inset = (int) Math.ceil(outlineWidth / 2);
                 g2.setColor(outline);
@@ -81,6 +81,118 @@ public final class UiKit {
             }
             g2.dispose();
         }
+    }
+
+
+    // ------------------------------------------------------------------
+    // Rounded scroll pane: clips its content to rounded corners (so rows,
+    // table headers and cards never poke out with sharp edges) and uses
+    // slim rounded scrollbars.
+    // ------------------------------------------------------------------
+
+    public static class RoundScrollPane extends JScrollPane {
+        private final int arc;
+        private final Color outline;
+        private final float outlineWidth;
+
+        public RoundScrollPane(Component view, int arc, Color outline, float outlineWidth) {
+            super(view);
+            this.arc = arc;
+            this.outline = outline;
+            this.outlineWidth = outlineWidth;
+            setBorder(null);
+            setOpaque(false);
+            getViewport().setOpaque(false);
+            setViewportBorder(null);
+            styleScrollBar(getVerticalScrollBar());
+            styleScrollBar(getHorizontalScrollBar());
+            setCorner(JScrollPane.LOWER_RIGHT_CORNER, new JPanel() {{ setOpaque(false); }});
+        }
+
+        @Override
+        public void paint(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            Theme.antialias(g2);
+            g2.clip(new java.awt.geom.RoundRectangle2D.Double(0, 0, getWidth(), getHeight(), arc, arc));
+            super.paint(g2);
+            g2.dispose();
+            if (outline != null) {
+                Graphics2D o = (Graphics2D) g.create();
+                Theme.antialias(o);
+                o.setColor(outline);
+                o.setStroke(new BasicStroke(outlineWidth));
+                float half = outlineWidth / 2f;
+                o.draw(new java.awt.geom.RoundRectangle2D.Double(half, half,
+                        getWidth() - outlineWidth, getHeight() - outlineWidth, arc, arc));
+                o.dispose();
+            }
+        }
+    }
+
+    /** Wraps a view in a rounded, clipped scroll pane. */
+    public static JScrollPane roundScroll(Component view, int arc, Color outline, float outlineWidth) {
+        return new RoundScrollPane(view, arc, outline, outlineWidth);
+    }
+
+    /** Rounded outline border (with optional inner padding) so bordered widgets have no sharp corners. */
+    public static class RoundBorder extends javax.swing.border.AbstractBorder {
+        private final Color color;
+        private final int arc;
+        private final Insets pad;
+
+        public RoundBorder(Color color, int arc, int padV, int padH) {
+            this.color = color;
+            this.arc = arc;
+            this.pad = new Insets(padV, padH, padV, padH);
+        }
+
+        @Override
+        public void paintBorder(Component c, Graphics g, int x, int y, int w, int h) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            Theme.antialias(g2);
+            g2.setColor(color);
+            g2.drawRoundRect(x, y, w - 1, h - 1, arc, arc);
+            g2.dispose();
+        }
+
+        @Override public Insets getBorderInsets(Component c) { return (Insets) pad.clone(); }
+        @Override public Insets getBorderInsets(Component c, Insets i) {
+            i.set(pad.top, pad.left, pad.bottom, pad.right);
+            return i;
+        }
+    }
+
+    public static void styleScrollBar(JScrollBar bar) {
+        bar.setUI(new javax.swing.plaf.basic.BasicScrollBarUI() {
+            @Override protected void configureScrollBarColors() {
+                thumbColor = new Color(0xB5BEC5);
+                trackColor = new Color(0, 0, 0, 0);
+            }
+            @Override protected JButton createDecreaseButton(int o) { return zeroButton(); }
+            @Override protected JButton createIncreaseButton(int o) { return zeroButton(); }
+            private JButton zeroButton() {
+                JButton b = new JButton();
+                b.setPreferredSize(new Dimension(0, 0));
+                b.setMinimumSize(new Dimension(0, 0));
+                b.setMaximumSize(new Dimension(0, 0));
+                return b;
+            }
+            @Override protected void paintTrack(Graphics g, JComponent c, Rectangle r) { }
+            @Override protected void paintThumb(Graphics g, JComponent c, Rectangle r) {
+                if (r.isEmpty() || !scrollbar.isEnabled()) return;
+                Graphics2D g2 = (Graphics2D) g.create();
+                Theme.antialias(g2);
+                g2.setColor(isThumbRollover() || isDragging ? new Color(0x8E9AA3) : thumbColor);
+                boolean vert = scrollbar.getOrientation() == JScrollBar.VERTICAL;
+                int d = 8;
+                if (vert) g2.fillRoundRect(r.x + (r.width - d) / 2, r.y + 2, d, r.height - 4, d, d);
+                else g2.fillRoundRect(r.x + 2, r.y + (r.height - d) / 2, r.width - 4, d, d, d);
+                g2.dispose();
+            }
+        });
+        bar.setOpaque(false);
+        bar.setPreferredSize(new Dimension(14, 14));
+        bar.setUnitIncrement(18);
     }
 
     // ------------------------------------------------------------------
@@ -505,7 +617,16 @@ public final class UiKit {
         l.setForeground(Theme.TEXT_DARK);
         return l;
     }
-
+    
+    /** White row for table action cells: left padding, children vertically centred in the row. */
+    public static JPanel actionRow(int leftPad) {
+    JPanel p = new JPanel();
+    p.setLayout(new BoxLayout(p, BoxLayout.X_AXIS));
+    p.setOpaque(true);
+    p.setBackground(Color.WHITE);
+    p.setBorder(new EmptyBorder(0, leftPad, 0, 0));
+    return p;
+}
     /** Small rounded action button used inside table cells (e.g. "View", "Complete", "Cancel"). */
     public static JButton tableActionButton(String text, Color fg, Color bg, Color outline) {
         JButton b = new JButton(text) {
@@ -514,10 +635,10 @@ public final class UiKit {
                 Graphics2D g2 = (Graphics2D) g.create();
                 Theme.antialias(g2);
                 g2.setColor(getModel().isRollover() ? bg.darker() : bg);
-                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
                 if (outline != null) {
                     g2.setColor(outline);
-                    g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+                    g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 12, 12);
                 }
                 g2.dispose();
                 super.paintComponent(g);

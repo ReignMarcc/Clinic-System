@@ -217,6 +217,44 @@ public class AddWalkInDialog extends JDialog {
             public void paintCurrentValueBackground(Graphics g, Rectangle bounds, boolean hasFocus) {
                 // transparent: the FormField draws the background
             }
+
+            @Override
+            @SuppressWarnings("unchecked")
+            public void paintCurrentValue(Graphics g, Rectangle bounds, boolean hasFocus) {
+                Object v = comboBox.getSelectedItem();
+                Graphics2D g2 = (Graphics2D) g.create();
+                Theme.antialias(g2);
+                g2.setFont(comboBox.getFont());
+                g2.setColor(v == null ? Theme.TEXT_MUTED : Theme.TEXT_DARK);
+                FontMetrics fm = g2.getFontMetrics();
+                String text = v == null ? placeholder : label.apply((T) v);
+                g2.drawString(text, bounds.x, bounds.y + (bounds.height - fm.getHeight()) / 2 + fm.getAscent());
+                g2.dispose();
+            }
+
+            @Override
+            protected javax.swing.plaf.basic.ComboPopup createPopup() {
+                javax.swing.plaf.basic.BasicComboPopup popup = new javax.swing.plaf.basic.BasicComboPopup(comboBox) {
+                    @Override
+                    protected Rectangle computePopupBounds(int px, int py, int pw, int ph) {
+                        int wanted = list.getPreferredSize().width + 24;
+                        return super.computePopupBounds(px, py, Math.max(pw, wanted), ph);
+                    }
+
+                    @Override
+                    protected void paintComponent(Graphics g) {
+                        Graphics2D g2 = (Graphics2D) g.create();
+                        Theme.antialias(g2);
+                        g2.setColor(Color.WHITE);
+                        g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+                        g2.dispose();
+                    }
+                };
+                popup.setOpaque(false);
+                popup.setLightWeightPopupEnabled(true);
+                popup.setBorder(new UiKit.RoundBorder(Theme.BORDER, 16, 5, 5));
+                return popup;
+            }
         });
         combo.setOpaque(false);
         combo.setBorder(null);

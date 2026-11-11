@@ -26,7 +26,8 @@ public class Doctor extends Persons {
     @Override
     public String displayInfo() {
         String status = isAvailable ? "Available" : "On Leave / Busy";
-        return "Dr. " + name + " (" + specialization + ") | ID: " + doctorId +
+        String shown = name.startsWith("Dr.") ? name : "Dr. " + name;
+        return shown + " (" + specialization + ") | ID: " + doctorId +
                 " | Shift: " + shift + " | Status: " + status;
     }
 }
