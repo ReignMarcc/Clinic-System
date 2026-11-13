@@ -43,6 +43,7 @@ public class Mainframe extends JFrame {
     private final AppointmentPanel appointmentPanel;
     private final RegistrationPanel patientsPanel;
     private final RecordsPanel recordsPanel;
+    private final SettingsPanel settingsPanel;
     private final ReportPanel reportPanel;
     private final Timer statusTimer;
     private final JPanel sidebar = new JPanel();
@@ -65,6 +66,7 @@ public class Mainframe extends JFrame {
                 this::openPatientRecord);
         this.patientsPanel = new RegistrationPanel(clinic, this::openPatientRecord);
         this.reportPanel = new ReportPanel(clinic);
+        this.settingsPanel = new SettingsPanel(clinic, this::openDoctorRecord);
 
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setSize(1100, 760);
@@ -82,7 +84,7 @@ public class Mainframe extends JFrame {
         for (String name : PAGE_NAMES) {
             if (!PAGE_DASHBOARD.equals(name)) setPage(name, placeholder(name));
         }
-        setPage(PAGE_SETTINGS, new SettingsPanel());
+        setPage(PAGE_SETTINGS, settingsPanel);
         setPage(PAGE_APPOINTMENTS, appointmentPanel);
         setPage(PAGE_RECORDS, recordsPanel);
         setPage(PAGE_PATIENTS, patientsPanel);
@@ -118,6 +120,8 @@ public class Mainframe extends JFrame {
         if (PAGE_APPOINTMENTS.equals(name)) appointmentPanel.refresh();
         if (PAGE_PATIENTS.equals(name)) patientsPanel.refreshData();
         if (PAGE_RECORDS.equals(name)) recordsPanel.refresh();
+        if (PAGE_SETTINGS.equals(name)) settingsPanel.refresh();
+        if (PAGE_REPORTS.equals(name)) reportPanel.refresh();
     }
 
     private static String headerTitleFor(String name) {
@@ -204,6 +208,7 @@ public class Mainframe extends JFrame {
             item.setToolTipText(name); // helpful when the sidebar is collapsed
             item.addActionListener(e -> {
                 if (PAGE_RECORDS.equals(name)) recordsPanel.resetToList();
+                if (PAGE_SETTINGS.equals(name)) settingsPanel.showMenu();
                 showPage(name);
             });
             navItems.put(name, item);
@@ -314,4 +319,4 @@ public class Mainframe extends JFrame {
             g2.dispose();
         }
     }
-}
+}

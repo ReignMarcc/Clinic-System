@@ -2,11 +2,14 @@ package com.clinic.service;
 
 import com.clinic.exception.*;
 import com.clinic.model.*;
+import com.clinic.file.ActivityFileHandler;
 import com.clinic.file.AppointmentFileHandler;
 import com.clinic.file.DiagnosisFileHandler;
+import com.clinic.file.DoctorFileHandler;
 import com.clinic.file.PatientFileHandler;
 import com.clinic.util.InputValidator;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -24,35 +27,50 @@ public class ClinicManager {
     private final Random random = new Random();
     private int nextAppointmentNo = 1001; // counter, so IDs never repeat after removals
 
+    private final ArrayList<ActivityEntry> activityLog = new ArrayList<>();
+    private final ActivityFileHandler activityFile;
+    private final DoctorFileHandler doctorFile;
     private final PatientFileHandler patientFile;
     private final DiagnosisFileHandler diagnosisFile;
     private final AppointmentFileHandler appointmentFile;
 
     public ClinicManager() {
-        this(new PatientFileHandler(), new DiagnosisFileHandler(), new AppointmentFileHandler());
+        this(new DoctorFileHandler(), new PatientFileHandler(), new DiagnosisFileHandler(), new AppointmentFileHandler(),
+                new ActivityFileHandler());
     }
 
     public ClinicManager(Path dataDir) {
-        this(new PatientFileHandler(dataDir.resolve(PatientFileHandler.FILE_NAME)),
+        this(new DoctorFileHandler(dataDir.resolve(DoctorFileHandler.FILE_NAME)),
+                new PatientFileHandler(dataDir.resolve(PatientFileHandler.FILE_NAME)),
                 new DiagnosisFileHandler(dataDir.resolve(DiagnosisFileHandler.FILE_NAME)),
-                new AppointmentFileHandler(dataDir.resolve(AppointmentFileHandler.FILE_NAME)));
+                new AppointmentFileHandler(dataDir.resolve(AppointmentFileHandler.FILE_NAME)),
+            new ActivityFileHandler(dataDir.resolve(ActivityFileHandler.FILE_NAME)));
     }
 
-    private ClinicManager(PatientFileHandler patientFile, DiagnosisFileHandler diagnosisFile,
-                          AppointmentFileHandler appointmentFile) {
+    private ClinicManager(DoctorFileHandler doctorFile, PatientFileHandler patientFile,
+                          DiagnosisFileHandler diagnosisFile, AppointmentFileHandler appointmentFile,
+                          ActivityFileHandler activityFile) {
+        this.activityFile = activityFile;
+        this.doctorFile = doctorFile;
         this.patientFile = patientFile;
         this.diagnosisFile = diagnosisFile;
         this.appointmentFile = appointmentFile;
-
-        // Sample seed data
-        doctors.add(new Doctor("D001", "Dr. Juan Cruz", 45, "09171234567", "General Physician", "Morning Shift"));
-        doctors.add(new Doctor("D002", "Dr. Maria Santos", 38, "09189876543", "Pediatrics", "Night Shift"));
 
         loadFromFiles();
     }
 
     private void loadFromFiles() {
         System.out.println("Patient data is saved in: " + patientFile.getFile().getParent());
+        try {
+            doctors.addAll(doctorFile.load());   // doctors come only from doctors.csv; a new clinic starts with none
+        } catch (Exception e) {
+            System.err.println("Could not load " + doctorFile.getFile() + ": " + e.getMessage());
+        }
+        try {
+            activityLog.addAll(activityFile.load());
+        } catch (Exception e) {
+            System.err.println("Could not load " + activityFile.getFile() + ": " + e.getMessage());
+        }
         try {
             patients.addAll(patientFile.load());
         } catch (Exception e) {
@@ -73,7 +91,7 @@ public class ClinicManager {
         } catch (Exception e) {
             System.err.println("Could not load " + appointmentFile.getFile() + ": " + e.getMessage());
         }
-        System.out.println("Loaded " + patients.size() + " patients, " + appointments.size() + " appointments");
+        System.out.println("Loaded " + doctors.size() + " doctors, " + patients.size() + " patients, " + appointments.size() + " appointments");
         refreshAppointmentStatuses();
     }
 
@@ -186,6 +204,50 @@ public class ClinicManager {
         return false;
     }
 
+    // --- Activity log (feeds the report) ---
+
+    private static final String ACTOR_ADMIN = "Admin";
+    private static final String ACTOR_SYSTEM = "System";
+    private static final DateTimeFormatter LOG_WHEN = DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a");
+
+    /** Newest last. Returns a copy, sorted by time. */
+    public List<ActivityEntry> getActivityLog() {
+        refreshAppointmentStatuses();
+        List<ActivityEntry> copy = new ArrayList<>(activityLog);
+        copy.sort(Comparator.comparing(ActivityEntry::getTimestamp));
+        return Collections.unmodifiableList(copy);
+    }
+
+    private void log(ActivityType type, String patientId, String doctorId, String appointmentId, String details) {
+        addLog(LocalDateTime.now(), ACTOR_ADMIN, type, patientId, doctorId, appointmentId, details);
+        saveActivity();
+    }
+
+    private void addLog(LocalDateTime when, String actor, ActivityType type,
+                        String patientId, String doctorId, String appointmentId, String details) {
+        activityLog.add(new ActivityEntry(when, actor, type, patientId, doctorId, appointmentId, details));
+    }
+
+    /** A failed log write never blocks the real action; it is only reported on the console. */
+    private void saveActivity() {
+        try {
+            activityFile.save(activityLog);
+        } catch (IOException e) {
+            System.err.println("Could not save " + activityFile.getFile() + ": " + e.getMessage());
+        }
+    }
+
+    private String patientNameOrId(String patientId) {
+        for (Patient p : patients) if (p.getPatientId().equalsIgnoreCase(patientId)) return p.getName();
+        return patientId;
+    }
+
+    private String doctorNameOrNone(String doctorId) {
+        if (doctorId == null || doctorId.isEmpty()) return "no doctor assigned";
+        Doctor d = getDoctorById(doctorId);
+        return d == null ? "doctor " + doctorId : d.getName();
+    }
+
     // --- Feature 1: Patient Registration ---
 
     /**
@@ -225,6 +287,8 @@ public class ClinicManager {
         Patient p = new Patient(generatePatientId(), name, age, contact);
         patients.add(p);
         savePatients();
+        log(ActivityType.PATIENT_REGISTERED, p.getPatientId(), "", "",
+                "Registered " + name + " (age " + age + ")");
 
         if (schedule != null) {
             scheduleAppointment(p.getPatientId(), doctorId, schedule, reason);
@@ -277,6 +341,7 @@ public class ClinicManager {
         Patient p = new Patient(pId, InputValidator.normalizeSpaces(name));
         patients.add(p);
         savePatients();
+        log(ActivityType.PATIENT_REGISTERED, pId, "", "", "Registered " + p.getName() + " (emergency walk-in)");
 
         // Auto-create appointment for today
         scheduleAppointment(pId, LocalDateTime.now(), "Emergency Walk-in");
@@ -299,6 +364,12 @@ public class ClinicManager {
             throw new InvalidInputException("Diagnosis and notes must be at most " + InputValidator.MAX_NOTES_LENGTH + " characters!");
         }
 
+        List<String> changed = new ArrayList<>();
+        if (age != 0 && age != p.getAge()) changed.add("age");
+        if (InputValidator.isNotBlank(contact) && !contact.equals(p.getContactNumber())) changed.add("contact number");
+        if (InputValidator.isNotBlank(diagnosis) && !diagnosis.equals(p.getDiagnosis())) changed.add("diagnosis");
+        if (InputValidator.isNotBlank(notes) && !notes.equals(p.getNotes())) changed.add("notes");
+
         if (age != 0) p.setAge(age);
         if (InputValidator.isNotBlank(contact)) p.setContactNumber(contact);
         if (InputValidator.isNotBlank(diagnosis)) p.setDiagnosis(diagnosis);
@@ -306,6 +377,10 @@ public class ClinicManager {
 
         savePatients();
         saveDiagnoses();
+        if (!changed.isEmpty()) {
+            log(ActivityType.RECORD_UPDATED, p.getPatientId(), "", "",
+                    "Updated " + p.getName() + "'s " + String.join(", ", changed));
+        }
     }
 
     // --- Feature 3: Cancellation & Removal ---
@@ -315,10 +390,13 @@ public class ClinicManager {
 
     public void scheduleAppointment(String patientId, String doctorId, LocalDateTime dateTime, String reason)
             throws PatientNotFoundException {
-        locatePatient(patientId); // Ensure patient exists
+        Patient patient = locatePatient(patientId); // Ensure patient exists
         String aId = generateAppointmentId();
         appointments.add(new Appointment(aId, patientId, doctorId, dateTime, reason));
         saveAppointments();
+        log(ActivityType.APPOINTMENT_BOOKED, patient.getPatientId(), doctorId, aId,
+                "Booked " + patient.getName() + " with " + doctorNameOrNone(doctorId)
+                        + " for " + dateTime.format(LOG_WHEN) + (reason == null || reason.isEmpty() ? "" : " - " + reason));
     }
 
     public void cancelAppointment(String appointmentId) throws AppointmentNotFoundException, InvalidInputException {
@@ -332,6 +410,9 @@ public class ClinicManager {
                 }
                 a.setStatus(AppointmentStatus.CANCELLED);
                 saveAppointments();
+                log(ActivityType.APPOINTMENT_CANCELLED, a.getPatientId(), a.getDoctorId(), a.getAppointmentId(),
+                        "Cancelled " + patientNameOrId(a.getPatientId()) + "'s appointment with "
+                                + doctorNameOrNone(a.getDoctorId()) + " (" + a.getDateTime().format(LOG_WHEN) + ")");
                 return;
             }
         }
@@ -350,6 +431,9 @@ public class ClinicManager {
                 }
                 a.setStatus(AppointmentStatus.COMPLETED);
                 saveAppointments();
+                log(ActivityType.APPOINTMENT_COMPLETED, a.getPatientId(), a.getDoctorId(), a.getAppointmentId(),
+                        "Completed " + patientNameOrId(a.getPatientId()) + "'s appointment with "
+                                + doctorNameOrNone(a.getDoctorId()));
                 return;
             }
         }
@@ -369,19 +453,32 @@ public class ClinicManager {
             if (a.getStatus() == AppointmentStatus.PENDING && !a.getDateTime().isAfter(now)) {
                 a.setStatus(AppointmentStatus.ON_GOING);
                 changed = true;
+                // stamped with the scheduled time (when it really started), even if the app noticed later
+                addLog(a.getDateTime(), ACTOR_SYSTEM, ActivityType.APPOINTMENT_STARTED,
+                        a.getPatientId(), a.getDoctorId(), a.getAppointmentId(),
+                        patientNameOrId(a.getPatientId()) + "'s appointment with "
+                                + doctorNameOrNone(a.getDoctorId()) + " is now on-going");
             }
         }
-        if (changed) saveAppointments();
+        if (changed) {
+            saveAppointments();
+            saveActivity();
+        }
         return changed;
     }
 
     public void removePatient(String patientId) throws PatientNotFoundException {
         Patient p = locatePatient(patientId);
+        int removedAppointments = 0;
+        for (Appointment a : appointments) if (a.getPatientId().equalsIgnoreCase(patientId)) removedAppointments++;
         patients.remove(p);
         appointments.removeIf(a -> a.getPatientId().equalsIgnoreCase(patientId)); // Purge appointments
         savePatients();
         saveDiagnoses();
         saveAppointments();
+        log(ActivityType.PATIENT_REMOVED, p.getPatientId(), "", "",
+                "Removed " + p.getName() + " and " + removedAppointments + " appointment"
+                        + (removedAppointments == 1 ? "" : "s"));
     }
 
     // --- Feature 4: Patient Search ---
@@ -566,13 +663,216 @@ public class ClinicManager {
             throw new InvalidInputException("Diagnosis and notes must be at most "
                     + InputValidator.MAX_NOTES_LENGTH + " characters each!");
         }
+        boolean diagChanged = !d.equals(p.getDiagnosis());
+        boolean notesChanged = !n.equals(p.getNotes());
         p.setDiagnosis(d);
         p.setNotes(n);
         saveDiagnoses();
+        if (diagChanged || notesChanged) {
+            log(ActivityType.NOTES_UPDATED, p.getPatientId(), "", "",
+                    "Updated " + p.getName() + "'s " + (diagChanged && notesChanged ? "diagnosis and notes"
+                            : diagChanged ? "diagnosis" : "notes"));
+        }
+    }
+
+    // --- Doctor management (Settings > Doctors) ---
+
+    /** Doctors are stored with the "Dr." prefix, like the rest of the app expects: "Dr. Juan Cruz". */
+    private static String cleanDoctorName(String raw) throws InvalidInputException {
+        String bare = InputValidator.normalizeSpaces(raw);
+        if (bare.regionMatches(true, 0, "Dr.", 0, 3)) bare = bare.substring(3).trim();
+        if (!InputValidator.isValidName(bare)) {
+            throw new InvalidInputException("Doctor name must contain letters only (2-" + InputValidator.MAX_NAME_LENGTH + " characters)!");
+        }
+        String full = "Dr. " + bare;
+        if (full.length() > InputValidator.MAX_NAME_LENGTH) {
+            throw new InvalidInputException("Doctor name is too long (max " + InputValidator.MAX_NAME_LENGTH + " characters including \"Dr.\")!");
+        }
+        return full;
+    }
+
+    private static String cleanLicense(String raw) throws InvalidInputException {
+        String id = raw == null ? "" : raw.trim();
+        if (!InputValidator.isValidLicenseId(id)) {
+            throw new InvalidInputException("Doctor ID (license number) must be " + InputValidator.MIN_LICENSE_LENGTH + "-"
+                    + InputValidator.MAX_LICENSE_LENGTH + " characters: letters, numbers and hyphens only.");
+        }
+        return id.toUpperCase();
+    }
+
+    private static void checkDoctorAge(int age) throws InvalidInputException {
+        if (!InputValidator.isValidDoctorAge(age)) {
+            throw new InvalidInputException("Doctor age must be between " + InputValidator.MIN_DOCTOR_AGE + " and " + InputValidator.MAX_AGE + "!");
+        }
+    }
+
+    private static String cleanDoctorContact(String raw) throws InvalidInputException {
+        String contact = raw == null ? "" : raw.trim();
+        if (!InputValidator.isValidContact(contact)) throw new InvalidInputException("Contact must start with 09 and be 11 digits!");
+        return contact;
+    }
+
+    private static String cleanSpecialization(String raw) throws InvalidInputException {
+        if (!InputValidator.isValidSpecialization(raw)) {
+            throw new InvalidInputException("Please enter a valid specialization (letters only, 2-" + InputValidator.MAX_SPECIALIZATION_LENGTH + " characters).");
+        }
+        return InputValidator.normalizeSpaces(raw);
+    }
+
+    private static String canonicalShift(String raw) throws InvalidInputException {
+        if (raw != null) {
+            for (String s : Doctor.SHIFTS) if (s.equalsIgnoreCase(raw.trim())) return s;
+        }
+        throw new InvalidInputException("Please choose a shift: " + String.join(" or ", Doctor.SHIFTS) + ".");
+    }
+
+    private boolean isDoctorDuplicate(String fullName, String contact, Doctor ignore) {
+        for (Doctor d : doctors) {
+            if (d == ignore) continue;
+            if (InputValidator.normalizeSpaces(d.getName()).equalsIgnoreCase(fullName)
+                    && contact.equals(d.getContactNumber())) return true;
+        }
+        return false;
+    }
+
+    /** Throws instead of printing when saving fails, so the screen never says "saved" when it wasn't. */
+    private void saveDoctorsOrThrow() {
+        try {
+            doctorFile.save(doctors);
+        } catch (IOException e) {
+            throw new IllegalStateException("Could not save " + doctorFile.getFile() + ": " + e.getMessage(), e);
+        }
+    }
+
+    private Doctor findDoctor(String id) throws DoctorNotFoundException {
+        Doctor d = getDoctorById(id == null ? null : id.trim());
+        if (d == null) throw new DoctorNotFoundException("Doctor with ID " + id + " not found!");
+        return d;
+    }
+
+    /** The doctorId is the doctor's license number. It is typed in, must be unique, and can never be changed afterwards. */
+    public Doctor addDoctor(String doctorId, String name, int age, String contact,
+                            String specialization, String shift)
+            throws InvalidInputException, DuplicateDoctorException {
+        String id = cleanLicense(doctorId);
+        String fullName = cleanDoctorName(name);
+        checkDoctorAge(age);
+        String phone = cleanDoctorContact(contact);
+        String spec = cleanSpecialization(specialization);
+        String shiftName = canonicalShift(shift);
+
+        if (getDoctorById(id) != null) {
+            throw new DuplicateDoctorException("A doctor with ID " + id + " is already registered!");
+        }
+        if (isDoctorDuplicate(fullName, phone, null)) {
+            throw new DuplicateDoctorException("A doctor with the same name and contact number already exists!");
+        }
+
+        Doctor d = new Doctor(id, fullName, age, phone, spec, shiftName);
+        doctors.add(d);
+        try {
+            saveDoctorsOrThrow();
+        } catch (RuntimeException e) {
+            doctors.remove(d);
+            throw e;
+        }
+        log(ActivityType.DOCTOR_ADDED, "", d.getDoctorId(), "",
+                "Added " + d.getName() + " (" + d.getSpecialization() + ", " + d.getShift() + ")");
+        return d;
+    }
+
+    /** Edits everything except the doctor ID. */
+    public void updateDoctor(String doctorId, String name, int age, String contact,
+                             String specialization, String shift)
+            throws DoctorNotFoundException, InvalidInputException, DuplicateDoctorException {
+        Doctor d = findDoctor(doctorId);
+        String fullName = cleanDoctorName(name);
+        checkDoctorAge(age);
+        String phone = cleanDoctorContact(contact);
+        String spec = cleanSpecialization(specialization);
+        String shiftName = canonicalShift(shift);
+        if (isDoctorDuplicate(fullName, phone, d)) {
+            throw new DuplicateDoctorException("A doctor with the same name and contact number already exists!");
+        }
+
+        String oldName = d.getName(), oldContact = d.getContactNumber(), oldSpec = d.getSpecialization(), oldShift = d.getShift();
+        int oldAge = d.getAge();
+        d.setName(fullName);
+        d.setAge(age);
+        d.setContactNumber(phone);
+        d.setSpecialization(spec);
+        d.setShift(shiftName);
+        try {
+            saveDoctorsOrThrow();
+        } catch (RuntimeException e) {
+            d.setName(oldName); d.setAge(oldAge); d.setContactNumber(oldContact);
+            d.setSpecialization(oldSpec); d.setShift(oldShift);
+            throw e;
+        }
+        List<String> changed = new ArrayList<>();
+        if (!oldName.equals(fullName)) changed.add("name");
+        if (oldAge != age) changed.add("age");
+        if (!oldContact.equals(phone)) changed.add("contact number");
+        if (!oldSpec.equals(spec)) changed.add("specialization");
+        if (!oldShift.equals(shiftName)) changed.add("shift");
+        if (!changed.isEmpty()) {
+            log(ActivityType.DOCTOR_UPDATED, "", d.getDoctorId(), "",
+                    "Updated " + d.getName() + "'s " + String.join(", ", changed));
+        }
+    }
+
+    /** On leave = not offered in Add Appointment / Add Walk-in. Existing appointments are left as they are. */
+    public void setDoctorAvailable(String doctorId, boolean available) throws DoctorNotFoundException {
+        Doctor d = findDoctor(doctorId);
+        boolean old = d.isAvailable();
+        d.setAvailable(available);
+        try {
+            saveDoctorsOrThrow();
+        } catch (RuntimeException e) {
+            d.setAvailable(old);
+            throw e;
+        }
+        if (old != available) {
+            log(available ? ActivityType.DOCTOR_AVAILABLE : ActivityType.DOCTOR_ON_LEAVE, "", d.getDoctorId(), "",
+                    d.getName() + (available ? " is available again" : " was set on leave"));
+        }
+    }
+
+    /** Appointments of this doctor that are still open (pending or on-going). */
+    public int countActiveAppointments(String doctorId) {
+        refreshAppointmentStatuses();
+        int count = 0;
+        for (Appointment a : appointments) {
+            if (doctorId != null && a.getDoctorId().equalsIgnoreCase(doctorId)
+                    && (a.getStatus() == AppointmentStatus.PENDING || a.getStatus() == AppointmentStatus.ON_GOING)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /** A doctor who still has open appointments cannot be removed. */
+    public void removeDoctor(String doctorId) throws DoctorNotFoundException, DoctorInUseException {
+        Doctor d = findDoctor(doctorId);
+        int open = countActiveAppointments(d.getDoctorId());
+        if (open > 0) {
+            throw new DoctorInUseException(d.getName() + " still has " + open + " pending or on-going appointment"
+                    + (open == 1 ? "" : "s") + ". Cancel or complete "
+                    + (open == 1 ? "it" : "them") + " first, then try again.");
+        }
+        int index = doctors.indexOf(d);
+        doctors.remove(d);
+        try {
+            saveDoctorsOrThrow();
+        } catch (RuntimeException e) {
+            doctors.add(index, d);
+            throw e;
+        }
+        log(ActivityType.DOCTOR_REMOVED, "", d.getDoctorId(), "", "Removed " + d.getName());
     }
 
     // Read-only views, so the UI can't change the internal lists by accident
     public List<Patient> getPatients() { return Collections.unmodifiableList(patients); }
     public List<Doctor> getDoctors() { return Collections.unmodifiableList(doctors); }
     public List<Appointment> getAppointments() { refreshAppointmentStatuses(); return Collections.unmodifiableList(appointments); }
-}
+}

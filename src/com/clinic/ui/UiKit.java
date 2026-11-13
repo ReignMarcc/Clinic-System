@@ -100,7 +100,7 @@ public final class UiKit {
             this.arc = arc;
             this.outline = outline;
             this.outlineWidth = outlineWidth;
-            setBorder(null);
+            setBorder(BorderFactory.createEmptyBorder());
             setOpaque(false);
             getViewport().setOpaque(false);
             setViewportBorder(null);

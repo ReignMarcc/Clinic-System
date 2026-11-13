@@ -19,6 +19,10 @@ public class InputValidator {
     public static final LocalTime CLINIC_OPEN = LocalTime.of(7, 0);
     public static final LocalTime CLINIC_CLOSE = LocalTime.of(17, 0);
     public static final int MAX_DAYS_AHEAD = 365;
+    public static final int MIN_DOCTOR_AGE = 21;
+    public static final int MAX_SPECIALIZATION_LENGTH = 50;
+    public static final int MIN_LICENSE_LENGTH = 4;
+    public static final int MAX_LICENSE_LENGTH = 20;
 
     // ---- Formats ----
     public static final String BDAY_FORMAT_HINT = "MM/dd/yyyy";
@@ -36,6 +40,10 @@ public class InputValidator {
     private static final Pattern NAME_PATTERN = Pattern.compile("^\\p{L}[\\p{L} .'-]*$");
     // [0-9] only, unlike Character.isDigit which accepts non-ASCII digits
     private static final Pattern CONTACT_PATTERN = Pattern.compile("^09[0-9]{9}$");
+    // Doctor ID = license number: letters, digits and hyphens only, no spaces
+    private static final Pattern LICENSE_PATTERN = Pattern.compile("^[A-Za-z0-9-]{" + MIN_LICENSE_LENGTH + "," + MAX_LICENSE_LENGTH + "}$");
+    // e.g. "General Physician", "Ob-Gyn", "ENT (Ear, Nose & Throat)"
+    private static final Pattern SPECIALIZATION_PATTERN = Pattern.compile("^\\p{L}[\\p{L} .,'&/()-]*$");
     private static final Pattern PATIENT_ID_PATTERN = Pattern.compile("^P[0-9]{5}$", Pattern.CASE_INSENSITIVE);
     private static final Pattern APPOINTMENT_ID_PATTERN = Pattern.compile("^A[0-9]{4,}$", Pattern.CASE_INSENSITIVE);
 
@@ -78,6 +86,25 @@ public class InputValidator {
         } catch (DateTimeParseException e) {
             return false;
         }
+    }
+
+    // ---------- Doctor fields ----------
+
+    public static boolean isValidDoctorAge(int age) {
+        return age >= MIN_DOCTOR_AGE && age <= MAX_AGE;
+    }
+
+    /** The doctor's license number, used as the doctor ID. */
+    public static boolean isValidLicenseId(String id) {
+        return id != null && LICENSE_PATTERN.matcher(id.trim()).matches();
+    }
+
+    public static boolean isValidSpecialization(String specialization) {
+        if (!isNotBlank(specialization)) return false;
+        String s = normalizeSpaces(specialization);
+        return s.length() >= 2
+                && s.length() <= MAX_SPECIALIZATION_LENGTH
+                && SPECIALIZATION_PATTERN.matcher(s).matches();
     }
 
     // ---------- IDs ----------
@@ -154,4 +181,4 @@ public class InputValidator {
     public static String normalizeSpaces(String text) {
         return text == null ? "" : text.trim().replaceAll("\\s+", " ");
     }
-}
+}

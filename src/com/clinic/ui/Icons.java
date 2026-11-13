@@ -11,7 +11,7 @@ public final class Icons {
         USER, LOCK, EYE, EYE_OFF,
         HOME, PATIENTS, CALENDAR, CALENDAR_CLOCK, RECORDS, SEARCH, REPORTS, SETTINGS,
         BELL, AVATAR, PEOPLE, GROUP, HEART_PULSE, MENU,
-        CHEVRON_DOWN, PLUS_CIRCLE, DOCTOR, ARROW_LEFT
+        CHEVRON_DOWN, PLUS_CIRCLE, DOCTOR, ARROW_LEFT, MORE_VERTICAL
     }
 
     public static Icon of(Type type, int size, Color color) {
@@ -266,6 +266,12 @@ public final class Icons {
                     g2.draw(arrow);
                     break;
                 }
+                case MORE_VERTICAL: { // three dots, stacked
+                    g2.fill(new Ellipse2D.Double(8.2, 2.4, 3.6, 3.6));
+                    g2.fill(new Ellipse2D.Double(8.2, 8.2, 3.6, 3.6));
+                    g2.fill(new Ellipse2D.Double(8.2, 14, 3.6, 3.6));
+                    break;
+                }
                 case MENU: {
                     g2.setStroke(round(2.2f));
                     g2.draw(new Line2D.Double(3, 5, 17, 5));
@@ -279,4 +285,4 @@ public final class Icons {
     }
 
     private Icons() {}
-}
+}

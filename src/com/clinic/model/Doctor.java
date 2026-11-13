@@ -1,6 +1,10 @@
 package com.clinic.model;
 
 public class Doctor extends Persons {
+    public static final String SHIFT_MORNING = "Morning Shift";
+    public static final String SHIFT_NIGHT = "Night Shift";
+    public static final String[] SHIFTS = {SHIFT_MORNING, SHIFT_NIGHT};
+
     private final String doctorId;
     private String specialization;
     private String shift;
@@ -30,4 +34,4 @@ public class Doctor extends Persons {
         return shown + " (" + specialization + ") | ID: " + doctorId +
                 " | Shift: " + shift + " | Status: " + status;
     }
-}
+}

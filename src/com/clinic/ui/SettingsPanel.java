@@ -1,5 +1,7 @@
 package com.clinic.ui;
 
+import com.clinic.model.Doctor;
+import com.clinic.service.ClinicManager;
 import com.clinic.util.AdminCredentials;
 
 import javax.swing.*;
@@ -7,12 +9,13 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.function.Consumer;
 
 /**
  * Settings page, phone-style: a tappable list of menu items. Tapping one
  * reveals its content in place of the list; a back link returns to the menu.
- * Only "Account Settings" exists for now, so more items can be added later
- * without changing this structure.
+ * Items: "Account Settings" and "Doctor Settings" (add / edit / remove doctors).
+ * More items can be added later without changing this structure.
  */
 public class SettingsPanel extends JPanel {
 
@@ -27,8 +30,12 @@ public class SettingsPanel extends JPanel {
 
     private static final String MENU = "menu";
     private static final String ACCOUNT = "account";
+    private static final String DOCTORS = "doctors";
 
-    public SettingsPanel() {
+    private final DoctorSettingsPanel doctorSettings;
+
+    /** @param onViewDoctor called when "View records" is chosen on a doctor (opens that doctor's record) */
+    public SettingsPanel(ClinicManager clinic, Consumer<Doctor> onViewDoctor) {
         setLayout(new BorderLayout(0, 18));
         setBackground(Theme.CONTENT_BG);
         setBorder(new EmptyBorder(18, 22, 22, 22));
@@ -36,11 +43,24 @@ public class SettingsPanel extends JPanel {
         add(UiKit.pageTopBar("Settings"), BorderLayout.NORTH);
 
         body.setOpaque(false);
+        doctorSettings = new DoctorSettingsPanel(clinic, () -> cards.show(body, MENU), onViewDoctor);
+
         body.add(buildMenu(), MENU);
         body.add(buildAccountSettings(), ACCOUNT);
+        body.add(doctorSettings, DOCTORS);
         add(body, BorderLayout.CENTER);
 
         cards.show(body, MENU);
+    }
+
+    /** Back to the list of settings (used when Settings is opened from the sidebar). */
+    public void showMenu() {
+        cards.show(body, MENU);
+    }
+
+    /** Reloads anything that can change elsewhere in the app (the doctor list). */
+    public void refresh() {
+        doctorSettings.refresh();
     }
 
     // ------------------------------------------------------------------
@@ -58,12 +78,23 @@ public class SettingsPanel extends JPanel {
 
         card.add(menuRow("Account Settings", "Change your login email and password",
                 Icons.Type.USER, () -> cards.show(body, ACCOUNT)));
+        card.add(divider());
+        card.add(menuRow("Doctor Settings", "Add, edit, or remove the clinic's doctors",
+                Icons.Type.DOCTOR, () -> { doctorSettings.refresh(); cards.show(body, DOCTORS); }));
 
         JPanel top = new JPanel(new BorderLayout());
         top.setOpaque(false);
         top.add(card, BorderLayout.NORTH);
         wrap.add(top, BorderLayout.NORTH);
         return wrap;
+    }
+
+    private static JComponent divider() {
+        JPanel line = new JPanel();
+        line.setBackground(new Color(0xE9ECEE));
+        line.setPreferredSize(new Dimension(1, 1));
+        line.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
+        return line;
     }
 
     private JComponent menuRow(String title, String subtitle, Icons.Type icon, Runnable onClick) {
@@ -185,4 +216,4 @@ public class SettingsPanel extends JPanel {
             java.util.Arrays.fill(oldPass, '\0'); java.util.Arrays.fill(newPass, '\0'); java.util.Arrays.fill(confirm, '\0');
         }
     }
-}
+}
