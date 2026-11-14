@@ -11,7 +11,7 @@ public final class Icons {
         USER, LOCK, EYE, EYE_OFF,
         HOME, PATIENTS, CALENDAR, CALENDAR_CLOCK, RECORDS, SEARCH, REPORTS, SETTINGS,
         BELL, AVATAR, PEOPLE, GROUP, HEART_PULSE, MENU,
-        CHEVRON_DOWN, PLUS_CIRCLE, DOCTOR, ARROW_LEFT, MORE_VERTICAL
+        CHEVRON_DOWN, PLUS_CIRCLE, DOCTOR, ARROW_LEFT, MORE_VERTICAL, WALLET
     }
 
     public static Icon of(Type type, int size, Color color) {
@@ -272,6 +272,14 @@ public final class Icons {
                     g2.fill(new Ellipse2D.Double(8.2, 14, 3.6, 3.6));
                     break;
                 }
+                case WALLET: { // wallet with a card peeking out and a clasp
+                    g2.fill(new RoundRectangle2D.Double(3.2, 1.8, 11.5, 4.5, 1.8, 1.8));
+                    Area body = new Area(new RoundRectangle2D.Double(1.2, 4.6, 17.6, 13.4, 3.6, 3.6));
+                    body.subtract(new Area(new RoundRectangle2D.Double(11.2, 9.2, 9, 5, 2.5, 2.5)));
+                    g2.fill(body);
+                    g2.fill(new Ellipse2D.Double(13.3, 10.5, 2.4, 2.4));
+                    break;
+                }
                 case MENU: {
                     g2.setStroke(round(2.2f));
                     g2.draw(new Line2D.Double(3, 5, 17, 5));
@@ -285,4 +293,4 @@ public final class Icons {
     }
 
     private Icons() {}
-}
+}

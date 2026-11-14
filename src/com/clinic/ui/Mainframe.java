@@ -23,16 +23,17 @@ public class Mainframe extends JFrame {
     public static final String PAGE_PATIENTS     = "Patients";
     public static final String PAGE_APPOINTMENTS = "Appointments";
     public static final String PAGE_RECORDS      = "Records";
+    public static final String PAGE_PAYMENTS     = "Payments";
     public static final String PAGE_REPORTS      = "Reports";
     public static final String PAGE_SETTINGS     = "Settings";
 
     private static final String[] PAGE_NAMES = {
             PAGE_DASHBOARD, PAGE_PATIENTS, PAGE_APPOINTMENTS, PAGE_RECORDS,
-            PAGE_REPORTS, PAGE_SETTINGS
+            PAGE_PAYMENTS, PAGE_REPORTS, PAGE_SETTINGS
     };
     private static final Icons.Type[] PAGE_ICONS = {
             Icons.Type.HOME, Icons.Type.PATIENTS, Icons.Type.CALENDAR, Icons.Type.RECORDS,
-            Icons.Type.REPORTS, Icons.Type.SETTINGS
+            Icons.Type.WALLET, Icons.Type.REPORTS, Icons.Type.SETTINGS
     };
 
     private static final int SIDEBAR_EXPANDED = 270;
@@ -43,6 +44,7 @@ public class Mainframe extends JFrame {
     private final AppointmentPanel appointmentPanel;
     private final RegistrationPanel patientsPanel;
     private final RecordsPanel recordsPanel;
+    private final PaymentsPanel paymentsPanel;
     private final SettingsPanel settingsPanel;
     private final ReportPanel reportPanel;
     private final Timer statusTimer;
@@ -61,6 +63,7 @@ public class Mainframe extends JFrame {
         this.clinic = clinic;
         this.dashboard = new DashboardPanel(clinic, () -> showPage(PAGE_APPOINTMENTS));
         this.recordsPanel = new RecordsPanel(clinic);
+        this.paymentsPanel = new PaymentsPanel(clinic);
         this.appointmentPanel = new AppointmentPanel(clinic,
                 () -> showPage(PAGE_REPORTS),
                 this::openPatientRecord);
@@ -87,6 +90,7 @@ public class Mainframe extends JFrame {
         setPage(PAGE_SETTINGS, settingsPanel);
         setPage(PAGE_APPOINTMENTS, appointmentPanel);
         setPage(PAGE_RECORDS, recordsPanel);
+        setPage(PAGE_PAYMENTS, paymentsPanel);
         setPage(PAGE_PATIENTS, patientsPanel);
         setPage(PAGE_REPORTS, reportPanel);
 
@@ -120,6 +124,7 @@ public class Mainframe extends JFrame {
         if (PAGE_APPOINTMENTS.equals(name)) appointmentPanel.refresh();
         if (PAGE_PATIENTS.equals(name)) patientsPanel.refreshData();
         if (PAGE_RECORDS.equals(name)) recordsPanel.refresh();
+        if (PAGE_PAYMENTS.equals(name)) paymentsPanel.refresh();
         if (PAGE_SETTINGS.equals(name)) settingsPanel.refresh();
         if (PAGE_REPORTS.equals(name)) reportPanel.refresh();
     }
@@ -127,6 +132,7 @@ public class Mainframe extends JFrame {
     private static String headerTitleFor(String name) {
         if (PAGE_DASHBOARD.equals(name)) return "Main Dashboard";
         if (PAGE_APPOINTMENTS.equals(name)) return "Pending Appointments & Reports";
+        if (PAGE_PAYMENTS.equals(name)) return "Payments & Billing";
         return name;
     }
 
@@ -159,6 +165,7 @@ public class Mainframe extends JFrame {
         appointmentPanel.refresh();
         patientsPanel.refreshData();
         recordsPanel.refresh();
+        paymentsPanel.refresh();
     }
 
     private JComponent placeholder(String name) {
@@ -319,4 +326,4 @@ public class Mainframe extends JFrame {
             g2.dispose();
         }
     }
-}
+}

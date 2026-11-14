@@ -1,5 +1,6 @@
 package com.clinic.ui;
 
+import com.clinic.model.Bill;
 import com.clinic.model.Doctor;
 import com.clinic.model.Patient;
 import com.clinic.service.ClinicManager;
@@ -47,7 +48,7 @@ public class AddAppointmentDialog extends JDialog {
     private final JTextField nameField    = FormField.textField("Enter full name");
     private final JTextField ageField     = FormField.textField("Enter age");
     private final JTextField contactField = FormField.textField("e.g. 0912 345 6789");
-    private final JTextField reasonField  = FormField.textField("e.g. Check-up, lab test...");
+    private final ServiceFields services = new ServiceFields();   // General Check-up / Lab Test
     private final JTextField dateField    = FormField.textField("MM/DD/YYYY");
     private final JComboBox<Doctor> doctorCombo = new JComboBox<>();
     private final TimePicker timePicker = new TimePicker();
@@ -139,7 +140,7 @@ public class AddAppointmentDialog extends JDialog {
         styleCombo(doctorCombo, "Select a doctor first", d -> d.getName() + " - " + d.getSpecialization());
         place(form, cell("Assigned Doctor", comboRow(Icons.Type.USER, doctorCombo)), 1, 1);
 
-        place(form, cell("Reason for Visit", new FormField(null, reasonField, null)), 0, 2, 2);
+        place(form, services, 0, 2, 2);
 
         FormField dateRow = new FormField(Icons.of(Icons.Type.CALENDAR, 20, DARK), dateField, calendarButton);
         calendarButton.addActionListener(e -> new CalendarPopup(
@@ -363,7 +364,6 @@ public class AddAppointmentDialog extends JDialog {
         limit(nameField, 50, c -> Character.isLetter(c) || c == ' ' || c == '.' || c == '\'' || c == '-');
         limit(ageField, 3, c -> c >= '0' && c <= '9');
         limit(contactField, 13, c -> (c >= '0' && c <= '9') || c == ' ' || c == '-');
-        limit(reasonField, InputValidator.MAX_REASON_LENGTH, c -> true);
         limit(dateField, 10, c -> (c >= '0' && c <= '9') || c == '/');
     }
 
@@ -428,11 +428,12 @@ public class AddAppointmentDialog extends JDialog {
             return;
         }
 
-        String reason = InputValidator.normalizeSpaces(reasonField.getText());
-        if (!InputValidator.isValidReason(reason)) {
-            fail("Please enter the reason for this visit.", reasonField);
+        String serviceError = services.check();
+        if (serviceError != null) {
+            fail(serviceError, services.getFocusTarget());
             return;
         }
+        String reason = Bill.serviceLabel(services.getService());
 
         LocalDate date = parseDate(dateField.getText());
         if (date == null) {
@@ -448,11 +449,15 @@ public class AddAppointmentDialog extends JDialog {
 
         try {
             Patient p = clinic.registerAppointment(name, age, contact, doctor.getDoctorId(), when, reason);
+            Bill bill = services.createBill(clinic, p);   // pending bill, paid later in Payments & Billing
             JOptionPane.showMessageDialog(this,
                     "Appointment booked.\n\n"
                             + "Patient ID: " + p.getPatientId() + "\n"
                             + "Doctor: " + doctor.getName() + "\n"
-                            + "Appointment: " + when.format(NICE_FMT),
+                            + "Appointment: " + when.format(NICE_FMT) + "\n"
+                            + "Service: " + reason
+                            + (bill == null ? "" : " (" + Bill.money(bill.getAmount()) + ")\n"
+                            + "Invoice " + bill.getInvoiceId() + " is waiting in Payments & Billing."),
                     "Success", JOptionPane.INFORMATION_MESSAGE);
             dispose();
             if (onAdded != null) onAdded.run();

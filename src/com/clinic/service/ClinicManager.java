@@ -44,7 +44,7 @@ public class ClinicManager {
                 new PatientFileHandler(dataDir.resolve(PatientFileHandler.FILE_NAME)),
                 new DiagnosisFileHandler(dataDir.resolve(DiagnosisFileHandler.FILE_NAME)),
                 new AppointmentFileHandler(dataDir.resolve(AppointmentFileHandler.FILE_NAME)),
-            new ActivityFileHandler(dataDir.resolve(ActivityFileHandler.FILE_NAME)));
+                new ActivityFileHandler(dataDir.resolve(ActivityFileHandler.FILE_NAME)));
     }
 
     private ClinicManager(DoctorFileHandler doctorFile, PatientFileHandler patientFile,
@@ -429,6 +429,7 @@ public class ClinicManager {
                 if (a.getStatus() == AppointmentStatus.COMPLETED) {
                     throw new InvalidInputException("This appointment is already completed.");
                 }
+                BillingService.getInstance().requirePaid(a); // a visit can't be completed until its bill is paid
                 a.setStatus(AppointmentStatus.COMPLETED);
                 saveAppointments();
                 log(ActivityType.APPOINTMENT_COMPLETED, a.getPatientId(), a.getDoctorId(), a.getAppointmentId(),
@@ -875,4 +876,4 @@ public class ClinicManager {
     public List<Patient> getPatients() { return Collections.unmodifiableList(patients); }
     public List<Doctor> getDoctors() { return Collections.unmodifiableList(doctors); }
     public List<Appointment> getAppointments() { refreshAppointmentStatuses(); return Collections.unmodifiableList(appointments); }
-}
+}
