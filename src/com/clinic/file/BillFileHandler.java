@@ -79,7 +79,8 @@ public class BillFileHandler {
             if (first) { first = false; if (row.get(0).equals("invoiceId")) continue; }
             if (row.size() < 20 || row.get(0).trim().isEmpty()) continue;
 
-            String service = row.get(3).trim().toUpperCase();
+            String rawService = row.get(3).trim();
+            String service = Bill.isCustom(rawService) ? rawService : rawService.toUpperCase();
             if (!Bill.isService(service)) continue;
 
             BigDecimal amount;

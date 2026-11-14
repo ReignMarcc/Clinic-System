@@ -81,6 +81,16 @@ public final class BillingService {
         return bill;
     }
 
+    public synchronized Bill createBill(String appointmentId, String patientId, String service, java.math.BigDecimal price) {
+    Bill existing = getByAppointment(appointmentId);
+    if (existing != null) return existing;
+
+    Bill bill = new Bill(nextInvoiceId(), appointmentId, patientId, service, price, LocalDateTime.now());
+    bills.add(bill);
+    persist();
+    return bill;
+}
+
     /**
      * Appointments made before billing existed (or by any other route) don't have a
      * bill yet. Give every still-open appointment one, so nothing can slip through.

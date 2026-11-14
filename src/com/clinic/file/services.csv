@@ -1,0 +1,3 @@
+serviceId,name,price,active
+GENERAL_CHECKUP,General Check-up,700.00,true
+LAB_TEST,Lab Test,1200.00,true

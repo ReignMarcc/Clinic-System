@@ -22,6 +22,11 @@ public class Bill {
     public static final String SERVICE_LAB = "LAB_TEST";
     public static final BigDecimal CHECKUP_PRICE = new BigDecimal("700.00");
     public static final BigDecimal LAB_PRICE = new BigDecimal("1200.00");
+    public static final String CUSTOM_PREFIX = "OTHER:";
+    
+    public static boolean isCustom(String s) {
+        return s != null && s.startsWith(CUSTOM_PREFIX) && s.length() > CUSTOM_PREFIX.length();
+    }
 
     // ---- status ----
     public static final String STATUS_PENDING = "PENDING";
@@ -80,14 +85,20 @@ public class Bill {
     // ------------------------------------------------------------------
 
     public static boolean isService(String s) {
-        return SERVICE_CHECKUP.equals(s) || SERVICE_LAB.equals(s);
+        if (isCustom(s)) return true;
+        return com.clinic.service.ServiceCatalog.getInstance().find(s) != null;
     }
 
     public static String serviceLabel(String service) {
+        if (isCustom(service)) return service.substring(CUSTOM_PREFIX.length());
+        com.clinic.service.ServiceCatalog.Item item = com.clinic.service.ServiceCatalog.getInstance().find(service);
+        if (item != null) return item.getName();
         return SERVICE_LAB.equals(service) ? "Lab Test" : "General Check-up";
     }
 
     public static BigDecimal servicePrice(String service) {
+        com.clinic.service.ServiceCatalog.Item item = com.clinic.service.ServiceCatalog.getInstance().find(service);
+        if (item != null) return item.getPrice();
         return SERVICE_LAB.equals(service) ? LAB_PRICE : CHECKUP_PRICE;
     }
 
@@ -97,6 +108,8 @@ public class Bill {
      * everything else is treated as a General Check-up.
      */
     public static String serviceFromReason(String reason) {
+        com.clinic.service.ServiceCatalog.Item byName = com.clinic.service.ServiceCatalog.getInstance().findByName(reason);
+        if (byName != null) return byName.getId();
         return reason != null && reason.trim().toLowerCase().contains("lab") ? SERVICE_LAB : SERVICE_CHECKUP;
     }
 

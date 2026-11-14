@@ -1,0 +1,1 @@
+invoiceId,appointmentId,patientId,service,amount,discount,discountId,discountAmount,status,createdAt,paidAt,method,amountReceived,cardHolder,cardLast4,cardExpiry,hmoProvider,hmoMemberId,hmoHolder,hmoApprovalCode

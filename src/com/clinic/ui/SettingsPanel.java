@@ -31,6 +31,8 @@ public class SettingsPanel extends JPanel {
     private static final String MENU = "menu";
     private static final String ACCOUNT = "account";
     private static final String DOCTORS = "doctors";
+    private static final String SERVICES = "services";
+    private final ServiceSettingsPanel serviceSettings = new ServiceSettingsPanel(() -> cards.show(body, MENU));
 
     private final DoctorSettingsPanel doctorSettings;
 
@@ -48,6 +50,7 @@ public class SettingsPanel extends JPanel {
         body.add(buildMenu(), MENU);
         body.add(buildAccountSettings(), ACCOUNT);
         body.add(doctorSettings, DOCTORS);
+        body.add(serviceSettings, SERVICES);
         add(body, BorderLayout.CENTER);
 
         cards.show(body, MENU);
@@ -82,6 +85,9 @@ public class SettingsPanel extends JPanel {
         card.add(menuRow("Doctor Settings", "Add, edit, or remove the clinic's doctors",
                 Icons.Type.DOCTOR, () -> { doctorSettings.refresh(); cards.show(body, DOCTORS); }));
 
+        card.add(menuRow("Service Settings", "Add services and prices for the Add Patient drop-down",
+                Icons.Type.PLUS_CIRCLE, () -> { serviceSettings.refresh(); cards.show(body, SERVICES); }));
+
         JPanel top = new JPanel(new BorderLayout());
         top.setOpaque(false);
         top.add(card, BorderLayout.NORTH);
@@ -101,9 +107,11 @@ public class SettingsPanel extends JPanel {
         JPanel row = new JPanel(new BorderLayout(16, 0));
         row.setOpaque(true);
         row.setBackground(Color.WHITE);
-        row.setBorder(new EmptyBorder(16, 14, 16, 14));
+        row.setBorder(new EmptyBorder(14, 14, 14, 14));
         row.setCursor(Theme.hand());
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 72));
+        row.setMinimumSize(new Dimension(0, 84));
+        row.setPreferredSize(new Dimension(100, 84));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 84));
 
         JLabel iconLabel = new JLabel(Icons.of(icon, 24, Theme.PRIMARY));
         row.add(iconLabel, BorderLayout.WEST);
@@ -117,6 +125,8 @@ public class SettingsPanel extends JPanel {
         JLabel s = new JLabel(subtitle);
         s.setFont(Theme.font(Font.PLAIN, 13));
         s.setForeground(Theme.TEXT_MUTED);
+        t.setBorder(new EmptyBorder(0, 0, 2, 0));
+        s.setBorder(new EmptyBorder(0, 0, 2, 0)); // room for descenders (g, p, y) so they aren't clipped
         text.add(t);
         text.add(Box.createVerticalStrut(2));
         text.add(s);

@@ -132,6 +132,13 @@ public class RecordsPanel extends JPanel {
     }
 
     /** Re-reads the records and redraws whatever is currently shown (list or detail). */
+    private java.util.function.Consumer<String> onCheckPayment;
+
+    /** Called with an invoice number when staff press "Check Payment" on the unpaid-visit warning. */
+    public void setOnCheckPayment(java.util.function.Consumer<String> handler) {
+        this.onCheckPayment = handler;
+    }
+
     public void refresh() {
         render();
     }
@@ -617,8 +624,17 @@ public class RecordsPanel extends JPanel {
                 else clinic.cancelAppointment(appointmentId);
                 render(); // reflect the new status and totals immediately
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(owner, ex.getMessage(), "Can't update appointment",
-                        JOptionPane.WARNING_MESSAGE);
+                String msg = ex.getMessage() == null ? "Could not update the appointment." : ex.getMessage();
+                if (complete && msg.contains("been paid") && onCheckPayment != null) {
+                    // Unpaid visit: offer to jump straight to that bill in Payments & Billing
+                    com.clinic.model.Bill bill = com.clinic.service.BillingService.getInstance().getByAppointment(appointmentId);
+                    Object[] options = {"Check Payment", "Close"};
+                    int picked = JOptionPane.showOptionDialog(owner, msg, "Can't update appointment",
+                            JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[0]);
+                    if (picked == 0) onCheckPayment.accept(bill != null ? bill.getInvoiceId() : "");
+                } else {
+                    JOptionPane.showMessageDialog(owner, msg, "Can't update appointment", JOptionPane.WARNING_MESSAGE);
+                }
             }
         }
 

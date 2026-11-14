@@ -80,6 +80,11 @@ public class PaymentsPanel extends JPanel {
     // Data
     // ------------------------------------------------------------------
 
+    /** Fills the search box (e.g. with an invoice number) so only that bill shows. */
+    public void searchFor(String text) {
+        searchField.setText(text == null ? "" : text);
+    }
+
     public void refresh() {
         if (table.isEditing()) table.getCellEditor().cancelCellEditing();
 

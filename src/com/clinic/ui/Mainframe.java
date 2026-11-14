@@ -70,6 +70,10 @@ public class Mainframe extends JFrame {
         this.patientsPanel = new RegistrationPanel(clinic, this::openPatientRecord);
         this.reportPanel = new ReportPanel(clinic);
         this.settingsPanel = new SettingsPanel(clinic, this::openDoctorRecord);
+        this.recordsPanel.setOnCheckPayment(invoice -> {
+            paymentsPanel.searchFor(invoice);   // show just that bill
+            showPage(PAGE_PAYMENTS);
+        });
 
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setSize(1100, 760);
@@ -215,6 +219,7 @@ public class Mainframe extends JFrame {
             item.setToolTipText(name); // helpful when the sidebar is collapsed
             item.addActionListener(e -> {
                 if (PAGE_RECORDS.equals(name)) recordsPanel.resetToList();
+                if (PAGE_PAYMENTS.equals(name)) paymentsPanel.searchFor("");
                 if (PAGE_SETTINGS.equals(name)) settingsPanel.showMenu();
                 showPage(name);
             });
